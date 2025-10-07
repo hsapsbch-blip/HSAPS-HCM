@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quản lý sự kiện HSAPS HCM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'primary': 'rgb(var(--color-primary) / <alpha-value>)',
+              'primary-dark': 'rgb(var(--color-primary-dark) / <alpha-value>)',
+              'primary-light': 'rgb(var(--color-primary-light) / <alpha-value>)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      :root {
+        --color-primary: 235 36 142;
+        --color-primary-dark: 201 31 122;
+        --color-primary-light: 253 234 241;
+      }
+
+      /* Responsive Table Styles */
+      @media (max-width: 1023px) { /* Tailwind's lg breakpoint */
+        .responsive-table thead {
+          display: none;
+        }
+        .responsive-table tbody, .responsive-table tr, .responsive-table td {
+          display: block;
+          width: 100%;
+        }
+        .responsive-table tr {
+          margin-bottom: 1rem;
+          border: 1px solid #e5e7eb; /* border-gray-200 */
+          border-radius: 0.5rem; /* rounded-lg */
+          padding: 0.75rem;
+        }
+        .responsive-table td {
+          text-align: right;
+          padding-left: 50%;
+          position: relative;
+          padding-top: 0.5rem;
+          padding-bottom: 0.5rem;
+          min-height: 2rem; /* Ensure cells are not collapsed */
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+        }
+        .responsive-table td:before {
+          content: attr(data-label);
+          position: absolute;
+          left: 0.75rem;
+          width: calc(50% - 1rem);
+          padding-right: 0.5rem;
+          font-weight: 600;
+          text-align: left;
+          white-space: nowrap;
+        }
+        .responsive-table td.actions-cell {
+          padding-left: 0.75rem;
+          border-top: 1px solid #f3f4f6; /* border-gray-100 */
+          margin-top: 0.75rem;
+          padding-top: 0.75rem;
+          justify-content: flex-start;
+        }
+        .responsive-table td.actions-cell:before {
+          content: none;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.3",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.58.0",
+    "deno.ns": "https://aistudiocdn.com/deno.ns@^0.8.0",
+    "jspdf": "https://aistudiocdn.com/jspdf@2.5.1",
+    "html2canvas": "https://aistudiocdn.com/html2canvas@1.4.1",
+    "qrcode": "https://aistudiocdn.com/qrcode@^1.5.4"
+  }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+</head>
+  <body class="bg-gray-100">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

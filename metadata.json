@@ -1,0 +1,5 @@
+{
+  "name": "Quản lý sự kiện HSAPS HCM",
+  "description": "Một ứng dụng web để quản lý sự kiện, người dùng, nhà tài trợ và công việc cho HSAPS HCM, dựa trên lược đồ Supabase.",
+  "requestFramePermissions": []
+}
