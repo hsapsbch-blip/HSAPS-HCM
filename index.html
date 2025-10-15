@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quản lý sự kiện HSAPS HCM</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#EB248E" />
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -38,7 +41,7 @@
           margin-bottom: 1rem;
           border: 1px solid #e5e7eb; /* border-gray-200 */
           border-radius: 0.5rem; /* rounded-lg */
-          padding: 0.75rem;
+          overflow: hidden; /* Ensure rounded corners on children */
         }
         .responsive-table td {
           text-align: right;
@@ -50,19 +53,20 @@
           display: flex;
           align-items: center;
           justify-content: flex-end;
+          padding-right: 1rem;
         }
         .responsive-table td:before {
           content: attr(data-label);
           position: absolute;
-          left: 0.75rem;
-          width: calc(50% - 1rem);
+          left: 1rem;
+          width: calc(50% - 1.5rem);
           padding-right: 0.5rem;
           font-weight: 600;
           text-align: left;
           white-space: nowrap;
         }
         .responsive-table td.actions-cell {
-          padding-left: 0.75rem;
+          padding-left: 1rem;
           border-top: 1px solid #f3f4f6; /* border-gray-100 */
           margin-top: 0.75rem;
           padding-top: 0.75rem;
@@ -71,6 +75,52 @@
         .responsive-table td.actions-cell:before {
           content: none;
         }
+
+        /* Improved Submission Card Layout */
+        .responsive-table.submission-cards tr {
+            padding: 0;
+        }
+        /* Card Header */
+        .responsive-table.submission-cards td:first-child {
+            padding: 1rem;
+            text-align: left;
+            justify-content: flex-start;
+            border-bottom: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+        }
+        .responsive-table.submission-cards td:first-child::before {
+            content: none;
+        }
+        .responsive-table.submission-cards .responsive-name {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .responsive-table.submission-cards .responsive-id {
+            font-size: 0.875rem; /* text-sm */
+            color: #4B5563; /* text-gray-600 */
+            background-color: #e5e7eb; /* bg-gray-200 */
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            display: inline-block;
+        }
+        /* Card Body */
+        .responsive-table.submission-cards td:not(:first-child) {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+        /* Card Footer / Actions */
+        .responsive-table.submission-cards td.actions-cell {
+            padding-left: 1rem;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 0;
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+            background-color: #f9fafb;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
       }
     </style>
   <script type="importmap">
@@ -90,6 +140,7 @@
 }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
 </head>
   <body class="bg-gray-100">
     <div id="root"></div>

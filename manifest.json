@@ -1,0 +1,23 @@
+{
+  "short_name": "HSAPS HCM",
+  "name": "Quản lý sự kiện HSAPS HCM",
+  "description": "Một ứng dụng web để quản lý sự kiện, người dùng, nhà tài trợ và công việc cho HSAPS HCM.",
+  "icons": [
+    {
+      "src": "https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#EB248E",
+  "background_color": "#F9FAFB"
+}

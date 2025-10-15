@@ -8,6 +8,7 @@ import { SettingsIcon } from './icons/SettingsIcon';
 import { MenuIcon } from './icons/MenuIcon';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
+import { DownloadIcon } from './icons/DownloadIcon';
 import ChangePasswordModal from './ChangePasswordModal';
 
 // Helper function to format time difference
@@ -40,6 +41,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
 
   
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -50,6 +54,49 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const title = currentNavItem ? currentNavItem.label : 'Bảng điều khiển';
   
   const unreadCount = notifications.filter(n => !n.read).length;
+  
+  useEffect(() => {
+    const checkInstalled = () => {
+        // For modern browsers
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            return true;
+        }
+        // For Safari on iOS
+        if ((window.navigator as any).standalone) {
+            return true;
+        }
+        return false;
+    };
+
+    if (checkInstalled()) {
+        setIsAppInstalled(true);
+    }
+    
+    const handleBeforeInstallPrompt = (e: Event) => {
+        e.preventDefault();
+        setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    const handleAppInstalled = () => {
+        setInstallPrompt(null);
+        setIsAppInstalled(true);
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+    
+    return () => {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    const promptEvent = installPrompt as any;
+    await promptEvent.prompt();
+    // The prompt can only be used once.
+    setInstallPrompt(null);
+  };
 
   // Handle click outside for dropdowns
   useEffect(() => {
@@ -82,6 +129,17 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">{title}</h2>
         </div>
         <div className="flex items-center space-x-2">
+           {installPrompt && !isAppInstalled && (
+                <button
+                    onClick={handleInstallClick}
+                    className="hidden sm:flex items-center space-x-2 px-3 py-2 rounded-lg bg-primary-light text-primary font-semibold hover:bg-primary/20 transition-colors"
+                    aria-label="Cài đặt ứng dụng"
+                    title="Cài đặt ứng dụng"
+                >
+                    <DownloadIcon className="w-5 h-5" />
+                    <span className="hidden lg:inline">Cài đặt</span>
+                </button>
+            )}
           <div className="relative hidden md:block">
             <input
               type="text"

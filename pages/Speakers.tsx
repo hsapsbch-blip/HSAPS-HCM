@@ -68,6 +68,8 @@ const Speakers: React.FC = () => {
   const statusMenuRef = useRef<HTMLDivElement>(null);
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<'All' | Speaker['speaker_type']>('All');
+  const [filterStatus, setFilterStatus] = useState<'All' | Status>('All');
   const [viewMode, setViewMode] = useState<'card' | 'table'>(
     () => (localStorage.getItem('speakerViewMode') as 'card' | 'table') || 'card'
   );
@@ -354,28 +356,34 @@ const Speakers: React.FC = () => {
     return <span className={baseClasses}>{status}</span>;
   };
   
+  const speakerStatuses = [Status.PENDING, Status.APPROVED, Status.REJECTED];
+  const speakerTypes: (Speaker['speaker_type'])[] = ['Chủ tọa', 'Báo cáo viên', 'Chủ tọa/Báo cáo viên'];
+
   const filteredSpeakers = useMemo(() => {
-      if (!searchTerm) {
-          return speakers;
-      }
-      return speakers.filter(speaker => {
-          const lowerCaseSearchTerm = searchTerm.toLowerCase();
-          return (
-              speaker.full_name.toLowerCase().includes(lowerCaseSearchTerm) ||
-              (speaker.academic_rank && speaker.academic_rank.toLowerCase().includes(lowerCaseSearchTerm)) ||
-              (speaker.workplace && speaker.workplace.toLowerCase().includes(lowerCaseSearchTerm)) ||
-              speaker.report_title_vn.toLowerCase().includes(lowerCaseSearchTerm) ||
-              (speaker.email && speaker.email.toLowerCase().includes(lowerCaseSearchTerm))
-          );
-      });
-  }, [speakers, searchTerm]);
+    return speakers.filter(speaker => {
+        // Type match
+        const typeMatch = filterType === 'All' || speaker.speaker_type === filterType;
+        
+        // Status match
+        const statusMatch = filterStatus === 'All' || speaker.status === filterStatus;
+        
+        // Search term match
+        const searchMatch = !searchTerm || (
+            speaker.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (speaker.academic_rank && speaker.academic_rank.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (speaker.workplace && speaker.workplace.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            speaker.report_title_vn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (speaker.email && speaker.email.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+
+        return typeMatch && statusMatch && searchMatch;
+    });
+  }, [speakers, searchTerm, filterType, filterStatus]);
   
   if (!hasPermission('speakers:view')) {
       return <AccessDenied />;
   }
   
-  const speakerStatuses = [Status.PENDING, Status.APPROVED, Status.REJECTED];
-
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -394,14 +402,32 @@ const Speakers: React.FC = () => {
       </div>
       
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center mb-6">
-          <input
-              type="text"
-              placeholder="Tìm theo tên, học hàm, nơi công tác, email, bài báo cáo..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full sm:w-1/2 lg:w-1/3 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-          <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-lg">
+          <div className="flex flex-col sm:flex-row gap-4 w-full flex-wrap">
+              <input
+                  type="text"
+                  placeholder="Tìm kiếm..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full sm:w-auto sm:flex-grow px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <select
+                  value={filterType}
+                  onChange={e => setFilterType(e.target.value as any)}
+                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                  <option value="All">Tất cả loại</option>
+                  {speakerTypes.map(type => type && <option key={type} value={type}>{type}</option>)}
+              </select>
+              <select
+                  value={filterStatus}
+                  onChange={e => setFilterStatus(e.target.value as any)}
+                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                  <option value="All">Tất cả trạng thái</option>
+                  {speakerStatuses.map(status => <option key={status} value={status}>{status}</option>)}
+              </select>
+          </div>
+          <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-lg flex-shrink-0">
               <button 
                   onClick={() => setViewMode('card')}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'card' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
@@ -425,7 +451,7 @@ const Speakers: React.FC = () => {
         {!loading && filteredSpeakers.length === 0 && (
           <div className="text-center py-10 bg-white rounded-lg shadow">
               <p className="text-gray-500">
-                  {searchTerm ? "Không tìm thấy kết quả nào phù hợp." : "Chưa có dữ liệu."}
+                  Không tìm thấy kết quả nào phù hợp.
               </p>
           </div>
         )}

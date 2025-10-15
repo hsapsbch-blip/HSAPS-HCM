@@ -14,6 +14,17 @@ const formatDate = (dateString: string | null | undefined) => {
     return date.toLocaleDateString('vi-VN');
 };
 
+// Helper to get display value for a status.
+// Handles cases where DB stores English keys for some task statuses.
+const getStatusDisplay = (status: string | null | undefined): string => {
+    if (!status) return Status.PENDING; // Default display value
+    switch (status) {
+        case 'IN_PROGRESS': return Status.IN_PROGRESS;
+        case 'COMPLETED': return Status.COMPLETED;
+        default: return status; // Assumes other statuses are already display values
+    }
+};
+
 const AccessDenied: React.FC = () => (
     <div>
         <h1 className="text-3xl font-bold text-red-600">Truy cập bị từ chối</h1>
@@ -35,7 +46,7 @@ const Tasks: React.FC = () => {
     
     const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
     
-    const [filterStatus, setFilterStatus] = useState<'All' | Status>('All');
+    const [filterStatus, setFilterStatus] = useState<string>('All');
     const [filterAssignee, setFilterAssignee] = useState<'All' | 'Me' | string>('All');
 
 
@@ -114,8 +125,7 @@ const Tasks: React.FC = () => {
         setError(null);
 
         const originalTask = isNew ? null : tasks.find(t => t.id === editingTask.id);
-        // FIX: The destructured `profiles` property was shadowing the `profiles` state array.
-        // Renamed to `_removedProfiles` to avoid conflict and correctly use the state for finding the assignee.
+        // Fix: The destructured 'profiles' property was shadowing the 'profiles' state array. Renamed to '_removedProfiles' to avoid conflict.
         const { profiles: _removedProfiles, ...taskData } = editingTask;
 
         if (isNew) {
@@ -182,16 +192,17 @@ const Tasks: React.FC = () => {
         setEditingTask(prev => ({ ...prev, [name]: value }));
     };
 
-    const renderStatusBadge = (status: Status) => {
-        const statusMap = {
+    const renderStatusBadge = (status: string) => {
+        const displayStatus = getStatusDisplay(status);
+        const statusMap: { [key: string]: string } = {
           [Status.COMPLETED]: 'bg-green-100 text-green-800',
           [Status.IN_PROGRESS]: 'bg-blue-100 text-blue-800',
           [Status.PENDING]: 'bg-yellow-100 text-yellow-800',
-          [Status.REJECTED]: 'bg-red-100 text-red-800', // Assuming 'Rejected' might be a status for tasks too
+          [Status.REJECTED]: 'bg-red-100 text-red-800',
         };
         return (
-          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusMap[status] || 'bg-gray-100 text-gray-800'}`}>
-            {status}
+          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusMap[displayStatus] || 'bg-gray-100 text-gray-800'}`}>
+            {displayStatus}
           </span>
         );
     };
@@ -230,11 +241,13 @@ const Tasks: React.FC = () => {
             <div className="flex flex-col md:flex-row gap-4 md:space-x-4 mb-4">
                 <select 
                     value={filterStatus} 
-                    onChange={e => setFilterStatus(e.target.value as any)}
+                    onChange={e => setFilterStatus(e.target.value)}
                     className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                     <option value="All">Tất cả trạng thái</option>
-                    {Object.values(Status).filter(s => s === Status.PENDING || s === Status.IN_PROGRESS || s === Status.COMPLETED).map(s => <option key={s} value={s}>{s}</option>)}
+                    <option value={Status.PENDING}>{Status.PENDING}</option>
+                    <option value="IN_PROGRESS">{Status.IN_PROGRESS}</option>
+                    <option value="COMPLETED">{Status.COMPLETED}</option>
                 </select>
                 <select 
                     value={filterAssignee} 
@@ -321,8 +334,8 @@ const Tasks: React.FC = () => {
                                 <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
                                 <select name="status" value={editingTask.status || ''} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                                     <option value={Status.PENDING}>Chờ duyệt</option>
-                                    <option value={Status.IN_PROGRESS}>Đang thực hiện</option>
-                                    <option value={Status.COMPLETED}>Hoàn thành</option>
+                                    <option value="IN_PROGRESS">Đang thực hiện</option>
+                                    <option value="COMPLETED">Hoàn thành</option>
                                 </select>
                             </div>
                         </div>

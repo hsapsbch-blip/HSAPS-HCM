@@ -1,7 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../App';
 import { supabase } from '../../supabaseClient';
 import { EmailTemplate } from '../../types';
+
+// Add type declaration for CKEditor on the window object
+declare global {
+  interface Window {
+    ClassicEditor: any;
+  }
+}
 
 const EmailTemplates: React.FC = () => {
   const { hasPermission } = useAuth();
@@ -12,6 +19,9 @@ const EmailTemplates: React.FC = () => {
   const [savingStates, setSavingStates] = useState<Record<number, boolean>>({});
   const [successStates, setSuccessStates] = useState<Record<number, boolean>>({});
   const [error, setError] = useState('');
+
+  // Use a ref to store CKEditor instances
+  const editorInstances = useRef<Record<number, any>>({});
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -33,40 +43,93 @@ const EmailTemplates: React.FC = () => {
     fetchTemplates();
   }, []);
 
-  const handleTemplateChange = (id: number, field: 'subject' | 'body', value: string) => {
+  // Effect for initializing and cleaning up CKEditor instances
+  useEffect(() => {
+    // Wait for loading to finish, permissions to be checked, and the script to be available
+    if (loading || !canEdit || !window.ClassicEditor) {
+      return;
+    }
+
+    templates.forEach(template => {
+      const element = document.querySelector<HTMLElement>(`#body-${template.id}`);
+      // Initialize editor only if the element exists and an instance hasn't been created yet
+      if (element && !editorInstances.current[template.id]) {
+        window.ClassicEditor
+          .create(element, {
+            toolbar: {
+                items: [
+                    'undo', 'redo', '|', 'heading', '|', 
+                    'bold', 'italic', '|', 'link', 'bulletedList', 'numberedList', 'blockQuote'
+                ],
+                shouldNotGroupWhenFull: true
+            }
+          })
+          .then((editor: any) => {
+            editorInstances.current[template.id] = editor;
+          })
+          .catch((err: any) => {
+            console.error(`Error initializing editor for template #${template.id}:`, err);
+          });
+      }
+    });
+
+    // Cleanup function: destroy all editor instances when the component unmounts
+    return () => {
+      Object.values(editorInstances.current).forEach((editor: any) => {
+        if (editor && typeof editor.destroy === 'function') {
+          editor.destroy().catch((err: any) => console.error("Editor destroy error:", err));
+        }
+      });
+      editorInstances.current = {};
+    };
+  }, [loading, canEdit, templates]);
+
+  const handleSubjectChange = (id: number, value: string) => {
     setTemplates(currentTemplates =>
-      currentTemplates.map(t => (t.id === id ? { ...t, [field]: value } : t))
+      currentTemplates.map(t => (t.id === id ? { ...t, subject: value } : t))
     );
   };
 
-  const handleSave = async (template: EmailTemplate) => {
+  const handleSave = async (templateId: number) => {
     if (!canEdit) {
       setError("Bạn không có quyền thực hiện hành động này.");
       return;
     }
+    
+    const templateToSave = templates.find(t => t.id === templateId);
+    const editorInstance = editorInstances.current[templateId];
 
-    setSavingStates(prev => ({ ...prev, [template.id]: true }));
-    setSuccessStates(prev => ({ ...prev, [template.id]: false }));
+    if (!templateToSave || !editorInstance) {
+      setError(`Không tìm thấy mẫu hoặc trình soạn thảo cho ID #${templateId}.`);
+      return;
+    }
+
+    setSavingStates(prev => ({ ...prev, [templateId]: true }));
+    setSuccessStates(prev => ({ ...prev, [templateId]: false }));
     setError('');
+
+    const updatedBody = editorInstance.getData();
 
     const { error: upsertError } = await supabase
       .from('email_templates')
-      .update({ subject: template.subject, body: template.body })
-      .eq('id', template.id);
+      .update({ subject: templateToSave.subject, body: updatedBody })
+      .eq('id', templateId);
     
     if (upsertError) {
-      setError(`Lỗi khi lưu mẫu #${template.id}: ` + upsertError.message);
+      setError(`Lỗi khi lưu mẫu #${templateId}: ` + upsertError.message);
     } else {
-      setSuccessStates(prev => ({ ...prev, [template.id]: true }));
-      setTimeout(() => setSuccessStates(prev => ({ ...prev, [template.id]: false })), 3000);
+      // Update local state with the saved body content
+      setTemplates(current => current.map(t => t.id === templateId ? {...t, body: updatedBody} : t));
+      setSuccessStates(prev => ({ ...prev, [templateId]: true }));
+      setTimeout(() => setSuccessStates(prev => ({ ...prev, [templateId]: false })), 3000);
     }
 
-    setSavingStates(prev => ({ ...prev, [template.id]: false }));
+    setSavingStates(prev => ({ ...prev, [templateId]: false }));
   };
 
   const groupedTemplates = useMemo(() => {
     return templates.reduce<Record<string, EmailTemplate[]>>((acc, template) => {
-      const moduleKey = template.module === 'submissions' ? 'Danh sách đăng ký' : 'Báo cáo viên';
+      const moduleKey = template.module === 'submissions' ? 'Đăng ký' : 'Báo cáo viên';
       if (!acc[moduleKey]) {
         acc[moduleKey] = [];
       }
@@ -92,7 +155,6 @@ const EmailTemplates: React.FC = () => {
           <div key={moduleName}>
             <h3 className="text-xl font-semibold text-gray-700 mb-4 pb-2 border-b-2">{moduleName}</h3>
             <div className="space-y-6">
-              {/* FIX: Add Array.isArray check to act as a type guard and resolve 'map does not exist on unknown' error. */}
               {Array.isArray(templateList) && templateList.map(template => {
                 const isSaving = savingStates[template.id];
                 const isSuccess = successStates[template.id];
@@ -105,7 +167,7 @@ const EmailTemplates: React.FC = () => {
                             <p className="text-xs text-gray-500 mt-1">{template.description}</p>
                         </div>
                          <button
-                            onClick={() => handleSave(template)}
+                            onClick={() => handleSave(template.id)}
                             disabled={isSaving || !canEdit}
                             className={`px-4 py-2 text-sm font-medium rounded-md transition-colors w-28 text-center ${
                                 isSaving ? 'bg-gray-200 text-gray-500' :
@@ -122,7 +184,7 @@ const EmailTemplates: React.FC = () => {
                         <input
                           type="text"
                           value={template.subject}
-                          onChange={(e) => handleTemplateChange(template.id, 'subject', e.target.value)}
+                          onChange={(e) => handleSubjectChange(template.id, e.target.value)}
                           disabled={!canEdit}
                           className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm disabled:bg-gray-100"
                         />
@@ -130,11 +192,10 @@ const EmailTemplates: React.FC = () => {
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Nội dung (Body)</label>
                         <textarea
-                          rows={8}
-                          value={template.body}
-                          onChange={(e) => handleTemplateChange(template.id, 'body', e.target.value)}
-                          disabled={!canEdit}
-                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm disabled:bg-gray-100 font-mono"
+                            id={`body-${template.id}`}
+                            defaultValue={template.body}
+                            rows={10}
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm disabled:bg-gray-100"
                         />
                       </div>
                     </div>

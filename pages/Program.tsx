@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
 import { ProgramItem, Speaker } from '../types';
 import { useAuth } from '../App';
@@ -9,6 +9,8 @@ const AccessDenied: React.FC = () => (
         <p className="mt-2 text-gray-600">Bạn không có quyền xem trang này.</p>
     </div>
 );
+
+const CATEGORIES = ['Phẫu thuật thẩm mỹ', 'Nội khoa thẩm mỹ'] as const;
 
 const Program: React.FC = () => {
     const { hasPermission } = useAuth();
@@ -21,6 +23,9 @@ const Program: React.FC = () => {
     const [editingItem, setEditingItem] = useState<Partial<ProgramItem> & { start_time?: string; end_time?: string }>({});
     const [isNew, setIsNew] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<ProgramItem | null>(null);
+
+    const [filterSession, setFilterSession] = useState<string>('All');
+    const [filterCategory, setFilterCategory] = useState<string>('All');
 
     useEffect(() => {
         if (hasPermission('program:view')) {
@@ -92,6 +97,7 @@ const Program: React.FC = () => {
                 start_time: defaultStartTime,
                 end_time: defaultEndTime,
                 session: '',
+                category: null,
                 report_title_vn: '',
                 report_title_en: '',
                 speaker_id: undefined,
@@ -182,14 +188,33 @@ const Program: React.FC = () => {
         }
     };
     
-    const groupedProgram = programItems.reduce((acc, item) => {
-        const date = new Date(item.date).toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        if (!acc[date]) {
-            acc[date] = [];
-        }
-        acc[date].push(item);
-        return acc;
-    }, {} as Record<string, ProgramItem[]>);
+    const uniqueSessions = useMemo(() => {
+        const sessions = new Set<string>();
+        programItems.forEach(item => {
+            if (item.session) {
+                sessions.add(item.session);
+            }
+        });
+        return Array.from(sessions).sort();
+    }, [programItems]);
+
+    const groupedProgram = useMemo(() => {
+        const filteredItems = programItems.filter(item => {
+            const sessionMatch = filterSession === 'All' || item.session === filterSession;
+            const categoryMatch = filterCategory === 'All' || item.category === filterCategory;
+            return sessionMatch && categoryMatch;
+        });
+
+        return filteredItems.reduce((acc, item) => {
+            const date = new Date(item.date).toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            if (!acc[date]) {
+                acc[date] = [];
+            }
+            acc[date].push(item);
+            return acc;
+        }, {} as Record<string, ProgramItem[]>);
+    }, [programItems, filterSession, filterCategory]);
+
 
     if (!hasPermission('program:view')) {
         return <AccessDenied />;
@@ -197,32 +222,65 @@ const Program: React.FC = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800">Quản lý Chương trình</h1>
                     <p className="mt-2 text-gray-600">Sắp xếp lịch trình, phân công báo cáo viên và quản lý các phiên.</p>
                 </div>
-                {hasPermission('program:create') && (
-                    <button onClick={() => openModal()} className="px-4 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary-dark transition-colors">
-                        + Thêm mục
-                    </button>
-                )}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                    <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-auto"
+                        aria-label="Lọc theo phân loại"
+                    >
+                        <option value="All">Tất cả phân loại</option>
+                        {CATEGORIES.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                    </select>
+                    <select
+                        value={filterSession}
+                        onChange={(e) => setFilterSession(e.target.value)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-auto"
+                        aria-label="Lọc theo phiên"
+                    >
+                        <option value="All">Tất cả các phiên</option>
+                        {uniqueSessions.map(session => (
+                            <option key={session} value={session}>{session}</option>
+                        ))}
+                    </select>
+                    {hasPermission('program:create') && (
+                        <button onClick={() => openModal()} className="px-4 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary-dark transition-colors w-full sm:w-auto">
+                            + Thêm mục
+                        </button>
+                    )}
+                </div>
             </div>
 
             {loading && <p className="p-4">Đang tải chương trình...</p>}
             {error && <p className="p-4 text-red-500">{error}</p>}
-            {!loading && Object.keys(groupedProgram).length === 0 && <p className="p-4 bg-white rounded-lg shadow">Chưa có mục nào trong chương trình.</p>}
+            {!loading && Object.keys(groupedProgram).length === 0 && (
+                 <div className="text-center py-10 bg-white rounded-lg shadow">
+                    <p className="text-gray-500">
+                        {filterSession === 'All' && filterCategory === 'All' ? "Chưa có mục nào trong chương trình." : "Không có mục nào phù hợp với bộ lọc."}
+                    </p>
+                </div>
+            )}
 
             <div className="space-y-8">
                 {Object.keys(groupedProgram).map(date => (
                     <div key={date}>
                         <h2 className="text-xl font-bold text-primary mb-3 pb-2 border-b-2 border-primary-light">{date}</h2>
-                        <div className="bg-white shadow rounded-lg overflow-x-auto">
+                        
+                        {/* Table for large screens */}
+                        <div className="hidden lg:block bg-white shadow rounded-lg overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Thời gian</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phiên</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phân loại</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nội dung</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Báo cáo viên</th>
                                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
@@ -235,6 +293,7 @@ const Program: React.FC = () => {
                                                 {item.time}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{item.session}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{item.category || <span className="text-xs text-gray-400">Chưa có</span>}</td>
                                             <td className="px-6 py-4 whitespace-normal text-sm">
                                                 <p className="text-gray-900 font-semibold">{item.report_title_vn}</p>
                                                 {item.report_title_en && <p className="text-gray-500 italic mt-1">{item.report_title_en}</p>}
@@ -242,7 +301,7 @@ const Program: React.FC = () => {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {item.speakers ? (
                                                      <div className="flex items-center">
-                                                        <img className="h-8 w-8 rounded-full" src={item.speakers.avatar_url || `https://i.pravatar.cc/150?u=${item.speakers.id}`} alt="" />
+                                                        <img className="h-8 w-8 rounded-full object-cover" src={item.speakers.avatar_url || `https://i.pravatar.cc/150?u=${item.speakers.id}`} alt={item.speakers.full_name} />
                                                         <div className="ml-3">
                                                             <div className="text-sm font-medium text-gray-900">{item.speakers.academic_rank} {item.speakers.full_name}</div>
                                                         </div>
@@ -257,6 +316,53 @@ const Program: React.FC = () => {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Cards for mobile */}
+                        <div className="block lg:hidden space-y-4">
+                            {groupedProgram[date].map(item => (
+                                <div key={item.id} className="bg-white rounded-lg shadow p-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold text-primary">{item.time}</p>
+                                            <div className="flex items-center gap-x-3 flex-wrap mb-2">
+                                                {item.session && <p className="text-xs text-gray-500">{item.session}</p>}
+                                                {item.category && <p className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{item.category}</p>}
+                                            </div>
+                                        </div>
+                                        <div className="flex space-x-2">
+                                            {hasPermission('program:edit') && (
+                                                <button onClick={() => openModal(item)} className="p-1 text-gray-500 hover:text-primary" aria-label="Sửa">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+                                                </button>
+                                            )}
+                                            {hasPermission('program:delete') && (
+                                                <button onClick={() => handleDelete(item)} className="p-1 text-gray-500 hover:text-red-600" aria-label="Xóa">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-2">
+                                        <p className="text-md font-bold text-gray-800">{item.report_title_vn}</p>
+                                        {item.report_title_en && <p className="text-sm text-gray-500 italic mt-1">{item.report_title_en}</p>}
+                                    </div>
+
+                                    {item.speakers ? (
+                                        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center space-x-3">
+                                            <img className="h-10 w-10 rounded-full object-cover" src={item.speakers.avatar_url || `https://i.pravatar.cc/150?u=${item.speakers.id}`} alt={item.speakers.full_name} />
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900">{item.speakers.academic_rank} {item.speakers.full_name}</p>
+                                            </div>
+                                        </div>
+                                    ): (
+                                        <div className="mt-3 pt-3 border-t border-gray-100">
+                                            <p className="text-sm text-gray-400">Không có báo cáo viên</p>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     </div>
                 ))}
@@ -293,9 +399,16 @@ const Program: React.FC = () => {
                                     </div>
                                </div>
                             </div>
-                            <div className="md:col-span-2">
+                            <div>
                                 <label className="block text-sm font-medium text-gray-700">Tên phiên (Session)</label>
                                 <input type="text" name="session" placeholder="VD: Phiên 1: Khai mạc" value={editingItem.session || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"/>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Phân loại</label>
+                                <select name="category" value={editingItem.category || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                                    <option value="">-- Chọn phân loại --</option>
+                                    {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                </select>
                             </div>
                              <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700">Báo cáo viên (Tùy chọn)</label>

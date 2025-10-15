@@ -189,7 +189,7 @@ const Finance: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // FIX: Destructure 'profiles' into a renamed variable to avoid shadowing the 'profiles' state array.
+        // Fix: The destructured 'profiles' property was shadowing the 'profiles' state array. Renamed to '_removedProfiles' to avoid conflict.
         const { profiles: _removedProfiles, ...transactionData } = editingTransaction;
 
         if (isNew) {
@@ -333,7 +333,6 @@ const Finance: React.FC = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tiêu đề / Ngày</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số tiền</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Danh mục</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tài khoản</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người xử lý</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
@@ -352,7 +351,6 @@ const Finance: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${t.type === 'Thu' ? 'text-green-700' : 'text-red-700'}`}>{formatCurrency(t.amount)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{t.category}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{t.account || <span className="text-gray-400">Chưa rõ</span>}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{t.profiles?.full_name || 'N/A'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -414,10 +412,6 @@ const Finance: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Số tiền (VND)</label>
                                 <input type="number" name="amount" value={String(editingTransaction.amount || 0)} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"/>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Danh mục</label>
-                                <input type="text" name="category" placeholder="VD: Tài trợ, In ấn, Ăn uống..." value={editingTransaction.category || ''} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"/>
                             </div>
                              <div>
                                 <label className="block text-sm font-medium text-gray-700">Tài khoản</label>

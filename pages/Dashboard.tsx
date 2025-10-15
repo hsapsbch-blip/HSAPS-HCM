@@ -46,7 +46,7 @@ const SubmissionStatusChart: React.FC<{ data: Record<string, number> }> = ({ dat
         [Status.COMPLETED]: { label: 'Hoàn thành', color: 'bg-gray-500' },
     };
     
-    // Fix: Explicitly typed the 'sum' and 'count' parameters in the reduce function to prevent TypeScript from inferring them as 'any', which resolves the arithmetic operation error.
+    // FIX: Explicitly typed the 'sum' and 'count' parameters in the reduce function to resolve a potential TypeScript arithmetic error.
     const total = Object.values(data).reduce((sum: number, count: number) => sum + count, 0);
     if (total === 0) return <p className="text-sm text-gray-500 text-center py-4">Chưa có dữ liệu đăng ký.</p>;
 
@@ -124,7 +124,8 @@ const Dashboard: React.FC = () => {
                 if (recentSubmissionsData.error) throw new Error(`Submissions: ${recentSubmissionsData.error.message}`);
                 if (upcomingTasksData.error) throw new Error(`Tasks Data: ${upcomingTasksData.error.message}`);
 
-                const totalRevenue = revenueData.data?.reduce((sum, item) => sum + item.amount, 0) || 0;
+                // Fix: Explicitly type the accumulator 'sum' and 'item' to prevent potential type errors with arithmetic operations.
+                const totalRevenue = revenueData.data?.reduce((sum: number, item: { amount: number }) => sum + item.amount, 0) || 0;
 
                 setStats({
                     attendees: totalSubmissions,

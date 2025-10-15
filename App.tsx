@@ -9,6 +9,7 @@ import { ToastProvider } from './contexts/ToastContext';
 // Page imports using React.lazy
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const NotificationsPage = lazy(() => import('./pages/Notifications'));
 const Users = lazy(() => import('./pages/Users'));
 const Sponsors = lazy(() => import('./pages/Sponsors'));
 const Tasks = lazy(() => import('./pages/Tasks'));
@@ -29,6 +30,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 // Component imports
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import BottomNav from './components/BottomNav';
 
 // Auth context
 interface AuthContextType {
@@ -167,14 +169,16 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     }, []);
 
     const clearAllNotifications = useCallback(async () => {
-        setNotifications(currentNotifications => {
-            const notificationIds = currentNotifications.filter(n => !n.read).map(n => n.id);
-            if (notificationIds.length > 0) {
-               supabase.from('notifications').update({ read: true }).in('id', notificationIds);
-            }
-            return currentNotifications.map(n => ({ ...n, read: true }));
-        });
-    }, []);
+        if (!session?.user) return;
+        setNotifications(currentNotifications => 
+            currentNotifications.map(n => ({...n, read: true}))
+        );
+        await supabase
+            .from('notifications')
+            .update({ read: true })
+            .eq('user_id', session.user.id)
+            .eq('read', false);
+    }, [session]);
 
     const createNotification = useCallback(async (notification: Omit<Notification, 'id' | 'created_at' | 'read'>) => {
         const { error } = await supabase.from('notifications').insert([{ ...notification, read: false }]);
@@ -247,7 +251,7 @@ const ProtectedLayout: React.FC = () => {
             <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
             <div className="flex-1 flex flex-col overflow-hidden">
                 <Header onMenuClick={() => setIsSidebarOpen(true)} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
+                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 pb-16 md:pb-0">
                     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                         <Outlet />
                     </div>
@@ -259,6 +263,7 @@ const ProtectedLayout: React.FC = () => {
                     onClick={() => setIsSidebarOpen(false)}
                 ></div>
             )}
+            <BottomNav />
         </div>
     );
 };
@@ -288,6 +293,7 @@ const App: React.FC = () => {
                   <Route path="/login" element={<Login />} />
                   <Route element={<ProtectedLayout />}>
                       <Route index element={<Dashboard />} />
+                      <Route path="notifications" element={<NotificationsPage />} />
                       <Route path="users" element={<Users />} />
                       <Route path="sponsors" element={<Sponsors />} />
                       <Route path="tasks" element={<Tasks />} />

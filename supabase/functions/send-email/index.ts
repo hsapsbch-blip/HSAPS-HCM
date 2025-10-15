@@ -1,8 +1,8 @@
+// FIX: Replaced the Deno namespace reference with the official Supabase functions type reference to resolve Deno-specific type errors.
+/// <reference types="https://unpkg.com/@supabase/functions-js/src/edge-functions.d.ts" />
+
 // File: supabase/functions/send-email/index.ts
 // Hoàn thiện và sử dụng Resend API - một phương pháp đơn giản và đáng tin cậy hơn.
-
-// Fix: Updated the Supabase Edge Function type reference to a non-version-pinned URL to resolve Deno type errors.
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

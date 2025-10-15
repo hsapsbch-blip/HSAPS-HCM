@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase, uploadFileToStorage, getTransformedImageUrl } from '../supabaseClient';
 import { Sponsor, Status } from '../types';
 import { useAuth } from '../App';
@@ -6,6 +6,12 @@ import { useAuth } from '../App';
 // Helper to format currency
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+};
+
+// Helper for live input formatting
+const formatAmountInput = (value?: number): string => {
+    if (value === undefined || value === null || isNaN(value)) return '';
+    return new Intl.NumberFormat('vi-VN').format(value);
 };
 
 const AccessDenied: React.FC = () => (
@@ -34,6 +40,8 @@ const Sponsors: React.FC = () => {
     const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [viewingSponsor, setViewingSponsor] = useState<Sponsor | null>(null);
+    
+    const contractStatuses = ['Chưa có', 'Chờ ký', 'Đã ký'] as const;
 
 
     useEffect(() => {
@@ -76,8 +84,10 @@ const Sponsors: React.FC = () => {
                 name: '',
                 sponsorship_package: 'Đồng',
                 status: Status.PENDING,
-                amount: 0,
+                amount: undefined,
                 location: '',
+                contract_status: 'Chưa có',
+                contract_url: null,
             });
         }
         setIsModalOpen(true);
@@ -135,6 +145,38 @@ const Sponsors: React.FC = () => {
             setLoading(false);
         }
     };
+    
+    const handleStatusChange = async (sponsorId: number, newStatus: Status) => {
+        if (!hasPermission('sponsors:edit')) {
+            alert("Bạn không có quyền thực hiện hành động này.");
+            return;
+        }
+
+        const originalSponsors = [...sponsors];
+        // Optimistic update
+        setSponsors(current =>
+            current.map(s => s.id === sponsorId ? { ...s, status: newStatus } : s)
+        );
+
+        const originalSponsor = originalSponsors.find(s => s.id === sponsorId);
+
+        const { error: updateError } = await supabase
+            .from('sponsors')
+            .update({ status: newStatus })
+            .eq('id', sponsorId);
+
+        if (updateError) {
+            setSponsors(originalSponsors); // Revert on error
+            setError("Lỗi khi cập nhật trạng thái: " + updateError.message);
+            return;
+        }
+        
+        if (newStatus === Status.PAYMENT_CONFIRMED && originalSponsor?.status !== Status.PAYMENT_CONFIRMED) {
+             const sponsorName = originalSponsor?.name || 'Không rõ';
+             await notifyAdmins(`Nhà tài trợ "${sponsorName}" đã xác nhận thanh toán.`, '/sponsors');
+        }
+    };
+
 
     const handleDelete = (sponsor: Sponsor) => {
         if (!hasPermission('sponsors:delete')) {
@@ -157,7 +199,19 @@ const Sponsors: React.FC = () => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setEditingSponsor(prev => ({ ...prev, [name]: value }));
+        if (name === 'amount') {
+            // Remove all non-digit characters
+            const sanitizedValue = value.replace(/\D/g, '');
+            // Convert to number, or undefined if empty
+            const numericValue = sanitizedValue === '' ? undefined : Number(sanitizedValue);
+
+            // Update state only with valid numbers (or undefined for empty)
+            if (numericValue !== undefined && isNaN(numericValue)) return;
+            
+            setEditingSponsor(prev => ({ ...prev, amount: numericValue }));
+        } else {
+            setEditingSponsor(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,21 +228,49 @@ const Sponsors: React.FC = () => {
             setIsUploading(false);
         }
     };
+    
+    const handleContractFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setIsUploading(true);
+            setError(null);
+            const publicUrl = await uploadFileToStorage(file, 'event_assets', 'sponsors_contracts');
+            if (publicUrl) {
+                setEditingSponsor(prev => ({ ...prev, contract_url: publicUrl }));
+            } else {
+                setError("Tải tệp hợp đồng lên thất bại. Vui lòng thử lại.");
+            }
+            setIsUploading(false);
+        }
+    };
 
     const renderStatusBadge = (status: Status) => {
-        const statusMap = {
+        const statusMap: { [key in Status]?: string } = {
           [Status.APPROVED]: 'bg-green-100 text-green-800',
           [Status.PENDING]: 'bg-yellow-100 text-yellow-800',
           [Status.REJECTED]: 'bg-red-100 text-red-800',
           [Status.PAYMENT_CONFIRMED]: 'bg-blue-100 text-blue-800',
           [Status.PAYMENT_PENDING]: 'bg-orange-100 text-orange-800'
         };
+        const baseClasses = `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusMap[status] || 'bg-gray-100 text-gray-800'}`;
+        return <span className={baseClasses}>{status}</span>;
+    };
+    
+    const renderContractStatusBadge = (status: Sponsor['contract_status']) => {
+        if (!status) return null;
+        const statusMap: Record<NonNullable<Sponsor['contract_status']>, string> = {
+            'Chưa có': 'bg-gray-100 text-gray-800',
+            'Chờ ký': 'bg-yellow-100 text-yellow-800',
+            'Đã ký': 'bg-green-100 text-green-800',
+        };
         return (
-          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusMap[status] || 'bg-gray-100 text-gray-800'}`}>
-            {status}
-          </span>
+            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusMap[status] || 'bg-gray-100 text-gray-800'}`}>
+                {status}
+            </span>
         );
     };
+    
+    const sponsorStatuses = Object.values(Status).filter(s=>s.startsWith("Đã") || s.startsWith("Chờ") || s.startsWith("Từ chối"));
 
     const filteredSponsors = useMemo(() => {
         return sponsors.filter(s => {
@@ -239,7 +321,7 @@ const Sponsors: React.FC = () => {
                     className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                     <option value="All">Tất cả trạng thái</option>
-                    {Object.values(Status).filter(s=>s.startsWith("Đã") || s.startsWith("Chờ") || s.startsWith("Từ chối")).map(s => <option key={s} value={s}>{s}</option>)}
+                    {sponsorStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
             </div>
             
@@ -253,8 +335,9 @@ const Sponsors: React.FC = () => {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nhà tài trợ</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gói tài trợ</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vị trí</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số tiền</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hợp đồng</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái HĐ</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
                             </tr>
@@ -275,9 +358,43 @@ const Sponsors: React.FC = () => {
                                         </div>
                                     </td>
                                     <td data-label="Gói tài trợ" className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{s.sponsorship_package}</td>
-                                    <td data-label="Vị trí" className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{s.location || <span className="text-gray-400">Chưa có</span>}</td>
                                     <td data-label="Số tiền" className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-800">{formatCurrency(s.amount)}</td>
-                                    <td data-label="Trạng thái" className="px-6 py-4 whitespace-nowrap">{renderStatusBadge(s.status)}</td>
+                                    <td data-label="Hợp đồng" className="px-6 py-4 whitespace-nowrap text-sm">
+                                        {s.contract_url ? (
+                                            <a href={s.contract_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                                Xem file
+                                            </a>
+                                        ) : (
+                                            <span className="text-gray-400">Chưa có</span>
+                                        )}
+                                    </td>
+                                    <td data-label="Trạng thái HĐ" className="px-6 py-4 whitespace-nowrap">
+                                        {renderContractStatusBadge(s.contract_status)}
+                                    </td>
+                                    <td data-label="Trạng thái" className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {renderStatusBadge(s.status)}
+                                            {hasPermission('sponsors:edit') && (
+                                                <div className="flex items-center gap-1">
+                                                    {s.status === Status.PENDING && (
+                                                        <>
+                                                            <button title="Duyệt" onClick={() => handleStatusChange(s.id, Status.APPROVED)} className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 transition-colors">Duyệt</button>
+                                                            <button title="Từ chối" onClick={() => handleStatusChange(s.id, Status.REJECTED)} className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors">Từ chối</button>
+                                                        </>
+                                                    )}
+                                                    {s.status === Status.APPROVED && (
+                                                        <button title="Chuyển sang Chờ thanh toán" onClick={() => handleStatusChange(s.id, Status.PAYMENT_PENDING)} className="px-2 py-1 text-xs font-medium text-orange-700 bg-orange-100 rounded-md hover:bg-orange-200 transition-colors">Chờ TT</button>
+                                                    )}
+                                                    {s.status === Status.PAYMENT_PENDING && (
+                                                        <>
+                                                            <button title="Xác nhận đã thanh toán" onClick={() => handleStatusChange(s.id, Status.PAYMENT_CONFIRMED)} className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors">Xác nhận TT</button>
+                                                            <button title="Từ chối" onClick={() => handleStatusChange(s.id, Status.REJECTED)} className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors">Từ chối</button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium actions-cell">
                                         <button onClick={() => openViewModal(s)} className="text-gray-600 hover:text-gray-900 mr-4">Xem</button>
                                         {hasPermission('sponsors:edit') && <button onClick={() => openModal(s)} className="text-primary hover:text-primary-dark mr-4">Sửa</button>}
@@ -336,13 +453,24 @@ const Sponsors: React.FC = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Số tiền (VND)</label>
-                                <input type="number" name="amount" value={String(editingSponsor.amount || 0)} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"/>
+                                <input type="text" inputMode="numeric" name="amount" value={formatAmountInput(editingSponsor.amount)} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"/>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
                                 <select name="status" value={editingSponsor.status || ''} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                                    {Object.values(Status).filter(s=>s.startsWith("Đã") || s.startsWith("Chờ") || s.startsWith("Từ chối")).map(s => <option key={s} value={s}>{s}</option>)}
+                                    {sponsorStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Trạng thái Hợp đồng</label>
+                                <select name="contract_status" value={editingSponsor.contract_status || 'Chưa có'} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                    {contractStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+                             <div>
+                                <label className="block text-sm font-medium text-gray-700">Tệp Hợp đồng</label>
+                                <input type="file" onChange={handleContractFileChange} className="mt-1 text-sm"/>
+                                {editingSponsor.contract_url && <a href={editingSponsor.contract_url} target="_blank" rel="noopener noreferrer" className="text-primary text-sm hover:underline mt-1 inline-block">Xem tệp đã tải</a>}
                             </div>
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700">Ghi chú</label>
@@ -401,6 +529,22 @@ const Sponsors: React.FC = () => {
                                     <div>
                                         <dt className="font-medium text-gray-500">Điện thoại</dt>
                                         <dd className="text-gray-900 mt-1">{viewingSponsor.phone || <span className="text-gray-400">Chưa có</span>}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="font-medium text-gray-500">Trạng thái Hợp đồng</dt>
+                                        <dd className="text-gray-900 mt-1">{renderContractStatusBadge(viewingSponsor.contract_status)}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="font-medium text-gray-500">File Hợp đồng</dt>
+                                        <dd className="text-gray-900 mt-1">
+                                            {viewingSponsor.contract_url ? (
+                                                <a href={viewingSponsor.contract_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                                    Tải xuống / Xem file
+                                                </a>
+                                            ) : (
+                                                <span className="text-gray-400">Chưa có</span>
+                                            )}
+                                        </dd>
                                     </div>
                                     <div className="sm:col-span-2">
                                         <dt className="font-medium text-gray-500">Ghi chú</dt>
