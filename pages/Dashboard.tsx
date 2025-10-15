@@ -46,7 +46,7 @@ const SubmissionStatusChart: React.FC<{ data: Record<string, number> }> = ({ dat
         [Status.COMPLETED]: { label: 'Hoàn thành', color: 'bg-gray-500' },
     };
     
-    // FIX: Explicitly typed the 'sum' and 'count' parameters in the reduce function to resolve a potential TypeScript arithmetic error.
+    // Fix: Explicitly typed the 'sum' and 'count' parameters in the reduce function to resolve a potential TypeScript arithmetic error.
     const total = Object.values(data).reduce((sum: number, count: number) => sum + count, 0);
     if (total === 0) return <p className="text-sm text-gray-500 text-center py-4">Chưa có dữ liệu đăng ký.</p>;
 

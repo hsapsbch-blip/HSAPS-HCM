@@ -2,7 +2,9 @@ const CACHE_NAME = 'hsaps-event-manager-v2';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  'https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-192.png',
+  'https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-512.png'
 ];
 
 // Cài đặt service worker và cache các tài nguyên ban đầu
@@ -16,7 +18,7 @@ self.addEventListener('install', event => {
   );
 });
 
-// Xử lý các yêu cầu fetch, ưu tiên trả về từ cache nếu có
+// Xử lý các yêu cầu fetch
 self.addEventListener('fetch', event => {
     // Bỏ qua các yêu cầu không phải GET
     if (event.request.method !== 'GET') {
@@ -25,13 +27,35 @@ self.addEventListener('fetch', event => {
     
     const requestUrl = new URL(event.request.url);
 
-    // Luôn đi đến mạng cho các API call của Supabase để đảm bảo dữ liệu mới nhất
+    // Chiến lược cho Supabase: network-only cho API, cache-first cho storage
     if (requestUrl.hostname.includes('supabase.co')) {
+        // Storage assets (images, icons, etc.) -> Cache first
+        if (requestUrl.pathname.startsWith('/storage/')) {
+            event.respondWith(
+                caches.match(event.request).then(cachedResponse => {
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+                    return fetch(event.request).then(networkResponse => {
+                        if (networkResponse && networkResponse.status === 200) {
+                            const responseToCache = networkResponse.clone();
+                            caches.open(CACHE_NAME).then(cache => {
+                                cache.put(event.request, responseToCache);
+                            });
+                        }
+                        return networkResponse;
+                    });
+                })
+            );
+            return;
+        }
+        
+        // API calls (auth, rest) -> Network only
         event.respondWith(fetch(event.request));
         return;
     }
     
-    // Đối với các yêu cầu khác (tài nguyên của ứng dụng), sử dụng chiến lược cache-first
+    // Đối với các yêu cầu khác (tài nguyên của ứng dụng, CDN), sử dụng chiến lược cache-first
     event.respondWith(
         caches.match(event.request)
             .then(response => {
@@ -42,28 +66,29 @@ self.addEventListener('fetch', event => {
 
                 // Nếu không có trong cache, fetch từ mạng
                 return fetch(event.request).then(
-                    response => {
+                    networkResponse => {
                         // Kiểm tra nếu nhận được response hợp lệ
-                        if (!response || response.status !== 200) {
-                            return response;
+                        if (!networkResponse || networkResponse.status !== 200) {
+                            return networkResponse;
                         }
                         
                         // Chỉ cache các tài nguyên từ domain của ứng dụng và các CDN đáng tin cậy
-                        if (response.type === 'basic' || requestUrl.hostname.includes('aistudiocdn.com')) {
+                        if (networkResponse.type === 'basic' || requestUrl.hostname.includes('aistudiocdn.com')) {
                              // Nhân bản response vì nó là một stream và cần được sử dụng ở hai nơi
-                            const responseToCache = response.clone();
+                            const responseToCache = networkResponse.clone();
                             caches.open(CACHE_NAME)
                                 .then(cache => {
                                     cache.put(event.request, responseToCache);
                                 });
                         }
 
-                        return response;
+                        return networkResponse;
                     }
                 );
             })
     );
 });
+
 
 // Kích hoạt service worker và xóa các cache cũ
 self.addEventListener('activate', event => {
