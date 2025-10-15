@@ -1,10 +1,10 @@
-const CACHE_NAME = 'hsaps-event-manager-v2';
+const CACHE_NAME = 'hsaps-event-manager-v3'; // Tăng phiên bản cache
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json',
-  'https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-192.png',
-  'https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-512.png'
+  '/manifest.json'
+  // Đã xóa các URL icon của Supabase để việc cài đặt diễn ra ổn định.
+  // Chúng sẽ được cache lại khi được sử dụng lần đầu bởi trình xử lý fetch.
 ];
 
 // Cài đặt service worker và cache các tài nguyên ban đầu
@@ -37,7 +37,8 @@ self.addEventListener('fetch', event => {
                         return cachedResponse;
                     }
                     return fetch(event.request).then(networkResponse => {
-                        if (networkResponse && networkResponse.status === 200) {
+                        // Cho phép cache các response 'opaque' từ storage cross-origin
+                        if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
                             const responseToCache = networkResponse.clone();
                             caches.open(CACHE_NAME).then(cache => {
                                 cache.put(event.request, responseToCache);

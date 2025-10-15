@@ -3,6 +3,9 @@ import { supabase, uploadFileToStorage } from '../supabaseClient';
 import { EventDocument, DocumentType } from '../types';
 import { useAuth } from '../App';
 
+import { ShareIcon } from '../components/icons/ShareIcon';
+import ShareDocumentModal from '../components/ShareDocumentModal';
+
 // Icon components for different file types
 const FileIcon = ({ className }: { className?: string }) => (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
@@ -36,6 +39,7 @@ const Documents: React.FC = () => {
     
     const [documentToDelete, setDocumentToDelete] = useState<EventDocument | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [documentToShare, setDocumentToShare] = useState<EventDocument | null>(null);
     
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'All' | DocumentType>('All');
@@ -83,6 +87,14 @@ const Documents: React.FC = () => {
             });
         }
         setIsModalOpen(true);
+    };
+
+    const openShareModal = (doc: EventDocument) => {
+        setDocumentToShare(doc);
+    };
+
+    const closeShareModal = () => {
+        setDocumentToShare(null);
     };
 
     const closeModal = () => {
@@ -254,9 +266,14 @@ const Documents: React.FC = () => {
                                 </div>
                                 <div className="flex justify-between items-center mt-4 pt-4 border-t">
                                     <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">Tải xuống</a>
-                                    <div className="space-x-2">
-                                        {hasPermission('documents:edit') && <button onClick={() => openModal(doc)} className="text-sm text-gray-600 hover:text-gray-900">Sửa</button>}
-                                        {hasPermission('documents:delete') && <button onClick={() => handleDelete(doc)} className="text-sm text-red-600 hover:text-red-800">Xóa</button>}
+                                    <div className="space-x-1 flex items-center">
+                                        {hasPermission('documents:view') && (
+                                            <button onClick={() => openShareModal(doc)} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors" title="Chia sẻ">
+                                                <ShareIcon className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        {hasPermission('documents:edit') && <button onClick={() => openModal(doc)} className="text-sm text-gray-600 hover:text-gray-900 px-2 py-1 rounded-md hover:bg-gray-100 transition-colors">Sửa</button>}
+                                        {hasPermission('documents:delete') && <button onClick={() => handleDelete(doc)} className="text-sm text-red-600 hover:text-red-800 px-2 py-1 rounded-md hover:bg-red-50 transition-colors">Xóa</button>}
                                     </div>
                                 </div>
                             </div>
@@ -264,6 +281,12 @@ const Documents: React.FC = () => {
                     ))}
                 </div>
             )}
+            
+            <ShareDocumentModal 
+                isOpen={!!documentToShare}
+                onClose={closeShareModal}
+                document={documentToShare}
+            />
             
              {/* Add/Edit Modal */}
             {isModalOpen && (

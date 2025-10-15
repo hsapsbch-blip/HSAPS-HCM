@@ -1,6 +1,8 @@
 
-// Fix: Replaced the Supabase functions type reference to resolve Deno-specific type errors.
-/// <reference types="https://esm.sh/@supabase/functions-js@2.4.1/src/edge-functions.d.ts" />
+
+
+// FIX: Replaced the incorrect Supabase functions type reference with the Deno namespace reference to resolve type errors.
+/// <reference lib="deno.ns" />
 
 // File: supabase/functions/refresh-zalo-token/index.ts
 // This function automatically refreshes the Zalo OA access token.
