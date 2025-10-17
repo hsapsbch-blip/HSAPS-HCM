@@ -17,6 +17,7 @@ type UploadingState = {
   passport_url: boolean;
   abstract_file_url: boolean;
   report_file_url: boolean;
+  cv_file_url: boolean;
 }
 
 const AccessDenied: React.FC = () => (
@@ -62,6 +63,7 @@ const Speakers: React.FC = () => {
     passport_url: false,
     abstract_file_url: false,
     report_file_url: false,
+    cv_file_url: false,
   });
   
   const [activeTab, setActiveTab] = useState<'details' | 'email' | 'take_care'>('details');
@@ -85,7 +87,6 @@ const Speakers: React.FC = () => {
   const [takeCareNotes, setTakeCareNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const takeCareEditorRef = useRef<any>(null);
-  const summaryEditorRef = useRef<any>(null);
 
 
   useEffect(() => {
@@ -145,36 +146,6 @@ const Speakers: React.FC = () => {
         }
     };
   }, [isViewModalOpen, activeTab]);
-  
-  // Effect for summary editor in the Edit Modal
-    useEffect(() => {
-        if (isEditModalOpen && window.ClassicEditor) {
-            const element = document.querySelector<HTMLElement>('#report_summary_editor');
-            if (element && !summaryEditorRef.current) {
-                window.ClassicEditor
-                    .create(element, {
-                         toolbar: {
-                            items: [ 'undo', 'redo', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList' ],
-                            shouldNotGroupWhenFull: true
-                        }
-                    })
-                    .then((editor: any) => {
-                        summaryEditorRef.current = editor;
-                        editor.setData(editingSpeaker.report_summary || '');
-                    })
-                    .catch((err: any) => {
-                        console.error("Error initializing summary editor:", err);
-                    });
-            }
-        }
-        // Cleanup on modal close
-        return () => {
-            if (summaryEditorRef.current) {
-                summaryEditorRef.current.destroy().catch((err: any) => console.error("Summary editor destroy error:", err));
-                summaryEditorRef.current = null;
-            }
-        };
-    }, [isEditModalOpen, editingSpeaker.report_summary]);
 
   const fetchSpeakers = async () => {
     setLoading(true);
@@ -224,7 +195,6 @@ const Speakers: React.FC = () => {
         workplace: '',
         report_title_vn: '',
         report_title_en: '',
-        report_summary: '',
         status: Status.PENDING,
         speaker_type: 'Báo cáo viên',
       });
@@ -263,9 +233,6 @@ const Speakers: React.FC = () => {
     setError(null);
 
     const speakerData = { ...editingSpeaker };
-    if (summaryEditorRef.current) {
-        speakerData.report_summary = summaryEditorRef.current.getData();
-    }
     if (isNew) {
       delete speakerData.id;
     }
@@ -723,19 +690,13 @@ const Speakers: React.FC = () => {
                             <h4 className="text-sm font-medium text-gray-500">Bài báo cáo (Tiếng Anh)</h4>
                             <p className="text-gray-800">{viewingSpeaker.report_title_en || <span className="text-gray-400">Chưa có</span>}</p>
                         </div>
-                         <div>
-                            <h4 className="text-sm font-medium text-gray-500">Tóm tắt bài báo cáo</h4>
-                            <div
-                                className="rich-text-content text-sm mt-1 text-gray-800"
-                                dangerouslySetInnerHTML={{ __html: viewingSpeaker.report_summary || '<span class="text-gray-400">Chưa có</span>' }}
-                            />
-                        </div>
                         <div>
                             <h4 className="text-sm font-medium text-gray-500">Tài liệu đính kèm</h4>
                             <ul className="list-disc list-inside space-y-1 mt-1 text-sm">
                                 <li>Bài tóm tắt (Abstract): {viewingSpeaker.abstract_file_url ? <a href={viewingSpeaker.abstract_file_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Xem tệp</a> : 'Chưa có'}</li>
                                 <li>Bài báo cáo: {viewingSpeaker.report_file_url ? <a href={viewingSpeaker.report_file_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Xem tệp</a> : 'Chưa có'}</li>
                                 <li>Hộ chiếu/CCCD: {viewingSpeaker.passport_url ? <a href={viewingSpeaker.passport_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Xem ảnh</a> : 'Chưa có'}</li>
+                                <li>Sơ yếu lý lịch khoa học: {viewingSpeaker.cv_file_url ? <a href={viewingSpeaker.cv_file_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Xem tệp</a> : 'Chưa có'}</li>
                             </ul>
                         </div>
                     </div>
@@ -871,10 +832,6 @@ const Speakers: React.FC = () => {
                         <label className="block text-sm font-medium text-gray-700">Tiêu đề bài báo cáo (Tiếng Anh)</label>
                         <textarea name="report_title_en" value={editingSpeaker.report_title_en || ''} onChange={handleChange} rows={2} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"/>
                     </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Tóm tắt bài báo cáo</label>
-                        <textarea id="report_summary_editor" name="report_summary" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"/>
-                    </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Tệp bài tóm tắt (Abstract)</label>
                         <input type="file" onChange={(e) => handleFileChange(e, 'abstract_file_url')} className="mt-1 text-sm"/>
@@ -892,6 +849,12 @@ const Speakers: React.FC = () => {
                         <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'passport_url')} className="mt-1 text-sm"/>
                         {uploadingState.passport_url && <p className="text-xs text-primary">Đang tải lên...</p>}
                         {editingSpeaker.passport_url && <a href={editingSpeaker.passport_url} target="_blank" rel="noopener noreferrer" className="text-primary text-sm hover:underline">Xem ảnh</a>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Tệp Sơ yếu lý lịch khoa học</label>
+                        <input type="file" onChange={(e) => handleFileChange(e, 'cv_file_url')} className="mt-1 text-sm" accept=".pdf,.doc,.docx"/>
+                        {uploadingState.cv_file_url && <p className="text-xs text-primary">Đang tải lên...</p>}
+                        {editingSpeaker.cv_file_url && <a href={editingSpeaker.cv_file_url} target="_blank" rel="noopener noreferrer" className="text-primary text-sm hover:underline">Xem tệp</a>}
                     </div>
                 </div>
                  <div className="md:col-span-2">

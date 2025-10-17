@@ -4,7 +4,7 @@
 // IMPORTANT: This import must be at the top level of the service worker.
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE_NAME = 'hsaps-event-manager-v13'; // Tăng phiên bản cache để cập nhật
+const CACHE_NAME = 'hsaps-event-manager-v14'; // Tăng phiên bản cache để cập nhật
 const urlsToCache = [
   '/',
   '/index.html',
@@ -51,11 +51,13 @@ self.addEventListener('fetch', event => {
         event.respondWith(
             fetch(event.request)
                 .then(networkResponse => {
-                    // Cập nhật cache với phiên bản mới nhất
-                    const responseToCache = networkResponse.clone();
-                    caches.open(CACHE_NAME).then(cache => {
-                        cache.put(event.request, responseToCache);
-                    });
+                    // Chỉ cache các response thành công (status 200 OK)
+                    if (networkResponse.ok) {
+                        const responseToCache = networkResponse.clone();
+                        caches.open(CACHE_NAME).then(cache => {
+                            cache.put(event.request, responseToCache);
+                        });
+                    }
                     return networkResponse;
                 })
                 .catch(() => {

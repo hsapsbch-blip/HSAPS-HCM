@@ -103,7 +103,6 @@ export interface Speaker {
   workplace: string;
   report_title_vn: string;
   report_title_en?: string | null;
-  report_summary?: string | null;
   status: Status;
   speaker_type: 'Chủ tọa' | 'Báo cáo viên' | 'Chủ tọa/Báo cáo viên';
   avatar_url?: string | null;
@@ -111,6 +110,7 @@ export interface Speaker {
   abstract_file_url?: string | null;
   report_file_url?: string | null;
   take_care_notes?: string | null;
+  cv_file_url?: string | null;
 }
 
 export interface ProgramItem {
