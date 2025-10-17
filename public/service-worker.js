@@ -4,12 +4,12 @@
 // IMPORTANT: This import must be at the top level of the service worker.
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE_NAME = 'hsaps-event-manager-v11'; // Tăng phiên bản cache để cập nhật
+const CACHE_NAME = 'hsaps-event-manager-v12'; // Tăng phiên bản cache để cập nhật
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  'https://cdn.tailwindcss.com',
+  // 'https://cdn.tailwindcss.com', // Bỏ qua cache CDN của Tailwind để tránh lỗi CORS
   'https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js',
   'https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js',
   'https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-192.png',
@@ -23,7 +23,8 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache and caching initial assets');
-        return cache.addAll(urlsToCache);
+        const requests = urlsToCache.map(url => new Request(url, { cache: 'reload' }));
+        return cache.addAll(requests);
       })
       .catch(err => {
         console.error('Failed to cache initial assets:', err);
