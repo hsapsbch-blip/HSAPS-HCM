@@ -4,7 +4,7 @@
 // By setting this config, we force the OneSignal worker to use the correct origin and paths.
 self.OneSignal = self.OneSignal || {};
 self.OneSignal.init = {
-  appId: "7e26cfd8-982d-4e68-9b7a-13d8770447bb", // This must match the main page init
+  appId: "42cf9351-9baf-4cb8-8c69-9e660fe161bc", // This must match the main page init
   origin: "https://hsaps-hcm.vercel.app",
   serviceWorkerPath: "service-worker.js",
   serviceWorkerUpdaterPath: "service-worker.js",
@@ -13,7 +13,7 @@ self.OneSignal.init = {
 
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE_NAME = 'hsaps-event-manager-v9'; // Tăng phiên bản cache để cập nhật
+const CACHE_NAME = 'hsaps-event-manager-v10'; // Tăng phiên bản cache để cập nhật
 const urlsToCache = [
   '/',
   '/index.html',
