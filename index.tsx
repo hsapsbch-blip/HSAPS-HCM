@@ -2,6 +2,13 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
+// Fix: Changed the type definition for `window.OneSignal` from `any[]` to `any` to accommodate the SDK object after it loads.
+declare global {
+  interface Window {
+    OneSignal: any;
+  }
+}
+
 // Register Service Worker for PWA functionality
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -14,7 +21,6 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
-
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

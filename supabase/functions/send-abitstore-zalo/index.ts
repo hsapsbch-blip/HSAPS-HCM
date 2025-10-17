@@ -1,5 +1,11 @@
-// Fix: Moved reference directive to the first line to ensure it's processed correctly by the compiler, resolving Deno namespace errors.
 /// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+
+// Fix: Declare the Deno global to provide types for the Deno runtime environment.
+declare const Deno: {
+  env: {
+    get: (key: string) => string | undefined;
+  };
+};
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

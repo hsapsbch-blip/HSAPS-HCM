@@ -1,9 +1,10 @@
-const CACHE_NAME = 'hsaps-event-manager-v6'; // Tăng phiên bản cache
+importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+
+const CACHE_NAME = 'hsaps-event-manager-v7'; // Tăng phiên bản cache để cập nhật
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  // ĐÃ XÓA: '/index.tsx', vì đây là tệp nguồn, không phải tệp JS được trình duyệt yêu cầu.
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js',
   'https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js',

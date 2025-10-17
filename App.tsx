@@ -31,6 +31,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
+import OneSignalInitializer from './components/OneSignalInitializer';
 
 // Auth context
 interface AuthContextType {
@@ -288,6 +289,7 @@ const App: React.FC = () => {
       <ThemeProvider>
         <ToastProvider>
           <AuthProvider>
+            <OneSignalInitializer />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                   <Route path="/login" element={<Login />} />
