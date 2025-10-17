@@ -1,14 +1,14 @@
-const CACHE_NAME = 'hsaps-event-manager-v4'; // Tăng phiên bản cache
+const CACHE_NAME = 'hsaps-event-manager-v5'; // Tăng phiên bản cache
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/index.tsx', // Cache tệp JS chính
-  'https://cdn.tailwindcss.com', // Cache thư viện CSS chính
-  'https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js', // Cache thư viện QRCode
-  'https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js', // Cache trình soạn thảo
-  'https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-192.png', // Cache icon
-  'https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-512.png' // Cache icon
+  // ĐÃ XÓA: '/index.tsx', vì đây là tệp nguồn, không phải tệp JS được trình duyệt yêu cầu.
+  'https://cdn.tailwindcss.com',
+  'https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js',
+  'https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js',
+  'https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-192.png',
+  'https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-512.png'
 ];
 
 // Cài đặt service worker và cache các tài nguyên ban đầu
@@ -26,75 +26,51 @@ self.addEventListener('install', event => {
   );
 });
 
-// Xử lý các yêu cầu fetch
+// Xử lý các yêu cầu fetch với logic mạnh mẽ hơn
 self.addEventListener('fetch', event => {
-    // Bỏ qua các yêu cầu không phải GET
     if (event.request.method !== 'GET') {
         return;
     }
-    
+
     const requestUrl = new URL(event.request.url);
 
-    // Chiến lược cho Supabase: network-only cho API, cache-first cho storage
-    if (requestUrl.hostname.includes('supabase.co')) {
-        // Storage assets (images, icons, etc.) -> Cache first
-        if (requestUrl.pathname.startsWith('/storage/')) {
-            event.respondWith(
-                caches.match(event.request).then(cachedResponse => {
-                    if (cachedResponse) {
-                        return cachedResponse;
-                    }
-                    return fetch(event.request).then(networkResponse => {
-                        // Cho phép cache các response 'opaque' từ storage cross-origin
-                        if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
-                            const responseToCache = networkResponse.clone();
-                            caches.open(CACHE_NAME).then(cache => {
-                                cache.put(event.request, responseToCache);
-                            });
-                        }
-                        return networkResponse;
-                    });
-                })
-            );
-            return;
-        }
-        
-        // API calls (auth, rest) -> Network only
+    // Các yêu cầu API của Supabase: Luôn lấy từ mạng để đảm bảo dữ liệu mới nhất.
+    if (requestUrl.hostname.includes('supabase.co') && !requestUrl.pathname.startsWith('/storage/')) {
         event.respondWith(fetch(event.request));
         return;
     }
-    
-    // Đối với các yêu cầu khác (tài nguyên của ứng dụng, CDN), sử dụng chiến lược cache-first
+
+    // Đối với tất cả các yêu cầu khác (HTML, JS, CSS, ảnh, Supabase Storage):
+    // Sử dụng chiến lược "Cache first" để tối ưu tốc độ và khả năng offline.
     event.respondWith(
-        caches.match(event.request)
-            .then(response => {
-                // Nếu tìm thấy trong cache, trả về response từ cache
-                if (response) {
-                    return response;
+        caches.match(event.request).then(cachedResponse => {
+            // Nếu có trong cache, trả về ngay lập tức.
+            if (cachedResponse) {
+                return cachedResponse;
+            }
+
+            // Nếu không có trong cache, fetch từ mạng.
+            return fetch(event.request).then(networkResponse => {
+                // Clone response và lưu vào cache để sử dụng cho lần sau.
+                // Hỗ trợ cả tài nguyên cùng nguồn (JS,...) và khác nguồn (CDN, Storage).
+                if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+                    const responseToCache = networkResponse.clone();
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, responseToCache);
+                    });
                 }
-
-                // Nếu không có trong cache, fetch từ mạng
-                return fetch(event.request).then(
-                    networkResponse => {
-                        // Kiểm tra nếu nhận được response hợp lệ
-                        if (!networkResponse || networkResponse.status !== 200) {
-                            return networkResponse;
-                        }
-                        
-                        // Chỉ cache các tài nguyên từ domain của ứng dụng và các CDN đáng tin cậy
-                        if (networkResponse.type === 'basic' || requestUrl.hostname.includes('aistudiocdn.com')) {
-                             // Nhân bản response vì nó là một stream và cần được sử dụng ở hai nơi
-                            const responseToCache = networkResponse.clone();
-                            caches.open(CACHE_NAME)
-                                .then(cache => {
-                                    cache.put(event.request, responseToCache);
-                                });
-                        }
-
-                        return networkResponse;
-                    }
-                );
-            })
+                return networkResponse;
+            }).catch(error => {
+                // Nếu fetch mạng thất bại (ví dụ: offline):
+                console.error('Network request failed:', event.request.url, error);
+                // Đối với yêu cầu điều hướng (tải trang), trả về trang chính của ứng dụng.
+                if (event.request.mode === 'navigate') {
+                    return caches.match('/index.html');
+                }
+                // Đối với các tài nguyên khác, để yêu cầu thất bại.
+                throw error;
+            });
+        })
     );
 });
 
