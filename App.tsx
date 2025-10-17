@@ -24,6 +24,7 @@ const EmailSettings = lazy(() => import('./pages/settings/EmailSettings'));
 const ZaloSettings = lazy(() => import('./pages/settings/ZaloSettings'));
 const EmailTemplates = lazy(() => import('./pages/settings/EmailTemplates'));
 const AbitstoreSettings = lazy(() => import('./pages/settings/AbitstoreSettings'));
+import SpeakerRegistration from './pages/SpeakerRegistration'; // Eagerly import to fix loading issue
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 
@@ -293,6 +294,7 @@ const App: React.FC = () => {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                   <Route path="/login" element={<Login />} />
+                  <Route path="/register-speaker" element={<SpeakerRegistration />} />
                   <Route element={<ProtectedLayout />}>
                       <Route index element={<Dashboard />} />
                       <Route path="notifications" element={<NotificationsPage />} />

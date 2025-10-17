@@ -64,7 +64,8 @@ const Program: React.FC = () => {
     const fetchSpeakers = async () => {
         const { data, error } = await supabase
             .from('speakers')
-            .select('id, full_name, academic_rank, report_title_vn, report_title_en')
+            // Fix: Select all fields to ensure the fetched data matches the Speaker type, resolving a type mismatch error.
+            .select('*')
             .order('full_name');
         
         if (error) {
