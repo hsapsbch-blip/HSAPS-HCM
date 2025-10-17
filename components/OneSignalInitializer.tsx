@@ -19,57 +19,53 @@ const OneSignalInitializer = () => {
       return;
     }
 
-    window.OneSignal = window.OneSignal || [];
-    window.OneSignal.push(() => {
+    // Use the v16 SDK deferred push pattern
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async (OneSignal) => {
       // The init method returns a promise that resolves when initialization is complete.
-      oneSignalInitPromise = window.OneSignal.init({
+      oneSignalInitPromise = OneSignal.init({
         // QUAN TRỌNG: Đây là nơi bạn cần cập nhật App ID từ tài khoản OneSignal của bạn.
         appId: "7e26cfd8-982d-4e68-9b7a-13d8770447bb", 
         allowLocalhostAsSecureOrigin: true,
-        // Fix: Explicitly provide the app's origin to prevent the SDK from
-        // incorrectly resolving paths against the wrong origin (e.g., 'ai.studio')
-        // when running in a sandboxed or iframe environment.
         origin: 'https://hsaps-hcm.vercel.app',
-        serviceWorkerPath: '/service-worker.js',
-        serviceWorkerUpdaterPath: '/service-worker.js',
-        serviceWorkerParam: { scope: '/' },
       });
 
       // Wait for initialization to finish before adding event listeners.
-      oneSignalInitPromise.then(() => {
-        console.log('[OneSignal Debug] Initialization complete.');
+      await oneSignalInitPromise;
+      
+      console.log('[OneSignal Debug] Initialization complete.');
 
-        // Add extensive logging for debugging subscription status
-        window.OneSignal.on('subscriptionChange', function (isSubscribed: boolean) {
-            console.log("[OneSignal Debug] The user's subscription state is now:", isSubscribed);
-        });
+      // Use the new event listener API for subscription changes
+      OneSignal.Notifications.addEventListener('change', (event) => {
+        console.log("[OneSignal Debug] The user's subscription state is now:", event.subscriptions.isSubscribed);
+      });
 
-        // Check and log the current state immediately after init
-        window.OneSignal.isPushNotificationsEnabled((isEnabled: boolean) => {
-            console.log("[OneSignal Debug] Push notifications enabled:", isEnabled);
-            if(isEnabled) {
-                 window.OneSignal.getUserId((userId: string) => {
-                    console.log("[OneSignal Debug] Player ID:", userId);
-                 });
-            }
-        });
-
-
-        window.OneSignal.on('notificationClick', (event) => {
-          console.log('[OneSignal Debug] Notification clicked:', event);
-          
-          const url = event.notification.launchURL;
-          if (url) {
-            try {
-              const path = new URL(url).hash.substring(1);
-              if (path) {
-                navigateRef.current(path);
-              }
-            } catch (e) {
-              console.error("[OneSignal Error] Could not parse launchURL:", e);
-            }
+      // Check and log the current state immediately after init
+      if (OneSignal.Notifications.isPushEnabled) {
+          console.log("[OneSignal Debug] Push notifications enabled.");
+          const playerId = OneSignal.User.pushSubscription.id;
+          if (playerId) {
+              console.log("[OneSignal Debug] Player ID:", playerId);
           }
-        });
+      } else {
+          console.log("[OneSignal Debug] Push notifications not enabled.");
+      }
+
+      // Use the new event listener API for notification clicks
+      OneSignal.Notifications.addEventListener('click', (event) => {
+        console.log('[OneSignal Debug] Notification clicked:', event);
+        
+        const url = event.notification.launchURL;
+        if (url) {
+          try {
+            const path = new URL(url).hash.substring(1);
+            if (path) {
+              navigateRef.current(path);
+            }
+          } catch (e) {
+            console.error("[OneSignal Error] Could not parse launchURL:", e);
+          }
+        }
       });
     });
   }, []); // Empty dependency array ensures this runs only once.
@@ -81,21 +77,30 @@ const OneSignalInitializer = () => {
       return;
     }
     
-    // Wait for the initialization promise to resolve before calling other methods.
-    oneSignalInitPromise.then(() => {
-      if (profile?.id) {
-        console.log(`[OneSignal Debug] Setting external user ID: ${profile.id}`);
-        window.OneSignal.setExternalUserId(profile.id);
-      } else {
-        // Only attempt to remove the ID if it has been set.
-        window.OneSignal.getExternalUserId().then((externalUserId: string | null) => {
-          if (externalUserId) {
-            console.log('[OneSignal Debug] Removing external user ID.');
-            window.OneSignal.removeExternalUserId();
-          }
-        });
+    const syncUser = async () => {
+      await oneSignalInitPromise;
+      // After init, the global OneSignal object is available
+      const OneSignal = window.OneSignal;
+      if (!OneSignal) {
+        console.error('[OneSignal Error] SDK not available for user sync.');
+        return;
       }
-    });
+
+      if (profile?.id) {
+        console.log(`[OneSignal Debug] Logging in OneSignal user: ${profile.id}`);
+        await OneSignal.login(profile.id);
+      } else {
+        // Check if a user is logged in before attempting to log out
+        const externalId = OneSignal.User.getExternalId();
+        if (externalId) {
+             console.log('[OneSignal Debug] Logging out OneSignal user.');
+             await OneSignal.logout();
+        }
+      }
+    };
+
+    syncUser();
+
   }, [profile]); // Re-run this effect when the user profile changes.
 
   return null; // This component does not render anything.

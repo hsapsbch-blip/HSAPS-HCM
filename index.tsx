@@ -6,6 +6,8 @@ import App from './App';
 declare global {
   interface Window {
     OneSignal: any;
+    // Fix: Add `OneSignalDeferred` to the global Window interface to support the deferred push SDK initialization pattern.
+    OneSignalDeferred: any[];
   }
 }
 
