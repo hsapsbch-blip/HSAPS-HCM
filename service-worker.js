@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hsaps-event-manager-v5'; // Tăng phiên bản cache
+const CACHE_NAME = 'hsaps-event-manager-v6'; // Tăng phiên bản cache
 const urlsToCache = [
   '/',
   '/index.html',
