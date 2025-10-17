@@ -11,9 +11,20 @@ declare global {
   }
 }
 
-// The service worker registration is now handled by the OneSignal SDK
-// via the configuration in `OneSignalInitializer.tsx`.
-// Removing the manual registration from here prevents conflicts.
+// Re-add the standard PWA service worker registration.
+// This ensures /service-worker.js is correctly registered, fixing the 404 error
+// and allowing both PWA functionality and the OneSignal SDK to work.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => {
+        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      })
+      .catch(error => {
+        console.error('ServiceWorker registration failed: ', error);
+      });
+  });
+}
 
 
 const rootElement = document.getElementById('root');
