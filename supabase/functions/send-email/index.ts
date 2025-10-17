@@ -1,5 +1,3 @@
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-
 // File: supabase/functions/send-email/index.ts
 // Hoàn thiện và sử dụng Resend API - một phương pháp đơn giản và đáng tin cậy hơn.
 

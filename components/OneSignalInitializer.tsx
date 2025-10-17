@@ -2,78 +2,78 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 
-// Cờ để đảm bảo OneSignal chỉ được khởi tạo một lần
-let oneSignalInitialized = false;
+// Store the init promise in a module-level variable to ensure it's a singleton.
+let oneSignalInitPromise: Promise<void> | null = null;
 
 const OneSignalInitializer = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  // Sử dụng ref để lưu trữ hàm navigate, tránh việc useEffect chạy lại không cần thiết
+  // Use a ref to hold the navigate function to avoid re-running the effect.
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
 
-  // Effect này chỉ chạy một lần để khởi tạo OneSignal và gắn các listener
+  // This effect runs only once to initialize OneSignal.
   useEffect(() => {
-    if (oneSignalInitialized) {
+    // Prevent re-initialization on re-renders.
+    if (oneSignalInitPromise) {
       return;
     }
 
     window.OneSignal = window.OneSignal || [];
-    const OneSignal = window.OneSignal;
-    
-    OneSignal.push(() => {
-        OneSignal.init({
-            // QUAN TRỌNG: Thay thế bằng App ID thật từ tài khoản onsignal.com của bạn
-            appId: "YOUR_ONESIGNAL_APP_ID", 
-            allowLocalhostAsSecureOrigin: true, // Hữu ích cho việc phát triển trên localhost
-        });
+    window.OneSignal.push(() => {
+      // The init method returns a promise that resolves when initialization is complete.
+      oneSignalInitPromise = window.OneSignal.init({
+        // QUAN TRỌNG: Đây là nơi bạn cần cập nhật App ID từ tài khoản OneSignal của bạn.
+        appId: "3892ed4a-9392-4112-a813-119101683f12", 
+        allowLocalhostAsSecureOrigin: true,
+      });
 
-        // Xử lý sự kiện khi người dùng nhấp vào thông báo
-        OneSignal.on('notificationClick', (event) => {
-            console.log('OneSignal notification clicked:', event);
-            
-            // Ví dụ: Nếu thông báo có launch URL, điều hướng đến đó.
-            // Bạn có thể tùy chỉnh logic này dựa trên `event.notification.additionalData`
-            const url = event.notification.launchURL;
-            if (url) {
-                try {
-                    // Trích xuất đường dẫn từ URL đầy đủ (giả định dùng hash router)
-                    const path = new URL(url).hash.substring(1);
-                    if (path) {
-                        navigateRef.current(path);
-                    }
-                } catch (e) {
-                    console.error("Không thể phân tích launchURL:", e);
-                }
+      // Wait for initialization to finish before adding event listeners.
+      oneSignalInitPromise.then(() => {
+        window.OneSignal.on('notificationClick', (event) => {
+          console.log('OneSignal notification clicked:', event);
+          
+          const url = event.notification.launchURL;
+          if (url) {
+            try {
+              const path = new URL(url).hash.substring(1);
+              if (path) {
+                navigateRef.current(path);
+              }
+            } catch (e) {
+              console.error("Không thể phân tích launchURL:", e);
             }
+          }
         });
+      });
     });
-    
-    oneSignalInitialized = true;
+  }, []); // Empty dependency array ensures this runs only once.
 
-  }, []); // Mảng phụ thuộc rỗng đảm bảo effect chỉ chạy một lần
-
-  // Effect này chạy mỗi khi thông tin người dùng thay đổi để đồng bộ với OneSignal
+  // This effect synchronizes the user's login state with OneSignal.
   useEffect(() => {
-    if (!oneSignalInitialized) return;
-
-    const OneSignal = window.OneSignal;
-    if (profile?.id) {
-        // Nếu người dùng đã đăng nhập, gắn ID của họ vào OneSignal
-        console.log(`Setting OneSignal external user ID: ${profile.id}`);
-        OneSignal.push(() => {
-            OneSignal.setExternalUserId(profile.id);
-        });
-    } else {
-        // Nếu người dùng đăng xuất, gỡ bỏ ID
-        console.log('Removing OneSignal external user ID.');
-        OneSignal.push(() => {
-            OneSignal.removeExternalUserId();
-        });
+    // Do nothing until OneSignal is being initialized.
+    if (!oneSignalInitPromise) {
+      return;
     }
-  }, [profile]);
+    
+    // Wait for the initialization promise to resolve before calling other methods.
+    oneSignalInitPromise.then(() => {
+      if (profile?.id) {
+        console.log(`Setting OneSignal external user ID: ${profile.id}`);
+        window.OneSignal.setExternalUserId(profile.id);
+      } else {
+        // Only attempt to remove the ID if it has been set.
+        window.OneSignal.getExternalUserId().then((externalUserId) => {
+          if (externalUserId) {
+            console.log('Removing OneSignal external user ID.');
+            window.OneSignal.removeExternalUserId();
+          }
+        });
+      }
+    });
+  }, [profile]); // Re-run this effect when the user profile changes.
 
-  return null; // Component này không hiển thị gì cả
+  return null; // This component does not render anything.
 };
 
 export default OneSignalInitializer;

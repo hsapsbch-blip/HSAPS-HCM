@@ -1,5 +1,3 @@
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-
 // Fix: Declare the Deno global to provide types for the Deno runtime environment.
 declare const Deno: {
   env: {

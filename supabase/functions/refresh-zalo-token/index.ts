@@ -1,5 +1,3 @@
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-
 // File: supabase/functions/refresh-zalo-token/index.ts
 // This function automatically refreshes the Zalo OA access token.
 // To run this automatically every 23 hours, set up a cron job in your Supabase project's SQL Editor.
