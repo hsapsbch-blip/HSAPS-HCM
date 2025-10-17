@@ -24,14 +24,14 @@ const OneSignalInitializer = () => {
       // The init method returns a promise that resolves when initialization is complete.
       oneSignalInitPromise = window.OneSignal.init({
         // QUAN TRỌNG: Đây là nơi bạn cần cập nhật App ID từ tài khoản OneSignal của bạn.
-        appId: "42cf9351-9baf-4cb8-8c69-9e660fe161bc", 
+        appId: "7e26cfd8-982d-4e68-9b7a-13d8770447bb", 
         allowLocalhostAsSecureOrigin: true,
-        // FIX: Explicitly define paths for both workers to prevent the SDK from
-        // trying to register a worker from the wrong origin (e.g., ai.studio).
-        // By pointing both to our single custom service worker (which imports the OneSignal code),
-        // we ensure correct registration within the app's actual origin.
-        serviceWorkerPath: "/service-worker.js",
-        serviceWorkerUpdaterPath: "/service-worker.js",
+        // Fix: Explicitly provide the app's origin to prevent the SDK from
+        // incorrectly resolving paths against the wrong origin (e.g., 'ai.studio')
+        // when running in a sandboxed or iframe environment.
+        origin: 'https://hsaps-hcm.vercel.app',
+        serviceWorkerPath: '/service-worker.js',
+        serviceWorkerUpdaterPath: '/service-worker.js',
         serviceWorkerParam: { scope: '/' },
       });
 

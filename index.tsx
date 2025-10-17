@@ -9,8 +9,10 @@ declare global {
   }
 }
 
-// Service Worker registration is now handled by the OneSignal SDK via OneSignalInitializer.tsx
-// to prevent conflicts between the PWA setup and OneSignal's requirements.
+// The service worker registration is now handled by the OneSignal SDK
+// via the configuration in `OneSignalInitializer.tsx`.
+// Removing the manual registration from here prevents conflicts.
+
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
