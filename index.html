@@ -124,6 +124,17 @@
         }
 
       }
+       /* Basic Rich Text Content Styles */
+      .rich-text-content p { margin-bottom: 0.75em; }
+      .rich-text-content ul, .rich-text-content ol { 
+        margin-left: 1.5em; 
+        margin-bottom: 0.75em; 
+        list-style: revert; /* Use browser default list styles */
+      }
+      .rich-text-content strong, .rich-text-content b { font-weight: 600; }
+      .rich-text-content em, .rich-text-content i { font-style: italic; }
+      .rich-text-content a { color: rgb(var(--color-primary)); text-decoration: underline; }
+
     </style>
   <script type="importmap">
 {

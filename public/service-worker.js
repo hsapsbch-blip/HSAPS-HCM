@@ -4,7 +4,7 @@
 // IMPORTANT: This import must be at the top level of the service worker.
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE_NAME = 'hsaps-event-manager-v12'; // Tăng phiên bản cache để cập nhật
+const CACHE_NAME = 'hsaps-event-manager-v13'; // Tăng phiên bản cache để cập nhật
 const urlsToCache = [
   '/',
   '/index.html',
@@ -32,7 +32,7 @@ self.addEventListener('install', event => {
   );
 });
 
-// Xử lý các yêu cầu fetch với logic mạnh mẽ hơn
+// Xử lý các yêu cầu fetch với chiến lược phù hợp
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') {
         return;
@@ -40,25 +40,39 @@ self.addEventListener('fetch', event => {
 
     const requestUrl = new URL(event.request.url);
 
-    // Các yêu cầu API của Supabase: Luôn lấy từ mạng để đảm bảo dữ liệu mới nhất.
+    // Yêu cầu API của Supabase (không phải storage): Luôn lấy từ mạng.
     if (requestUrl.hostname.includes('supabase.co') && !requestUrl.pathname.startsWith('/storage/')) {
         event.respondWith(fetch(event.request));
         return;
     }
 
-    // Đối với tất cả các yêu cầu khác (HTML, JS, CSS, ảnh, Supabase Storage):
-    // Sử dụng chiến lược "Cache first" để tối ưu tốc độ và khả năng offline.
+    // Yêu cầu điều hướng (trang HTML): Ưu tiên mạng, dự phòng bằng cache.
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .then(networkResponse => {
+                    // Cập nhật cache với phiên bản mới nhất
+                    const responseToCache = networkResponse.clone();
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, responseToCache);
+                    });
+                    return networkResponse;
+                })
+                .catch(() => {
+                    // Nếu mạng lỗi, lấy từ cache
+                    return caches.match('/index.html');
+                })
+        );
+        return;
+    }
+
+    // Các tài nguyên khác (JS, CSS, ảnh...): Ưu tiên cache, dự phòng bằng mạng.
     event.respondWith(
         caches.match(event.request).then(cachedResponse => {
-            // Nếu có trong cache, trả về ngay lập tức.
             if (cachedResponse) {
                 return cachedResponse;
             }
-
-            // Nếu không có trong cache, fetch từ mạng.
             return fetch(event.request).then(networkResponse => {
-                // Clone response và lưu vào cache để sử dụng cho lần sau.
-                // Hỗ trợ cả tài nguyên cùng nguồn (JS,...) và khác nguồn (CDN, Storage).
                 if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
                     const responseToCache = networkResponse.clone();
                     caches.open(CACHE_NAME).then(cache => {
@@ -66,15 +80,6 @@ self.addEventListener('fetch', event => {
                     });
                 }
                 return networkResponse;
-            }).catch(error => {
-                // Nếu fetch mạng thất bại (ví dụ: offline):
-                console.error('Network request failed:', event.request.url, error);
-                // Đối với yêu cầu điều hướng (tải trang), trả về trang chính của ứng dụng.
-                if (event.request.mode === 'navigate') {
-                    return caches.match('/index.html');
-                }
-                // Đối với các tài nguyên khác, để yêu cầu thất bại.
-                throw error;
             });
         })
     );

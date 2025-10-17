@@ -85,6 +85,7 @@ const Speakers: React.FC = () => {
   const [takeCareNotes, setTakeCareNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const takeCareEditorRef = useRef<any>(null);
+  const summaryEditorRef = useRef<any>(null);
 
 
   useEffect(() => {
@@ -144,6 +145,36 @@ const Speakers: React.FC = () => {
         }
     };
   }, [isViewModalOpen, activeTab]);
+  
+  // Effect for summary editor in the Edit Modal
+    useEffect(() => {
+        if (isEditModalOpen && window.ClassicEditor) {
+            const element = document.querySelector<HTMLElement>('#report_summary_editor');
+            if (element && !summaryEditorRef.current) {
+                window.ClassicEditor
+                    .create(element, {
+                         toolbar: {
+                            items: [ 'undo', 'redo', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList' ],
+                            shouldNotGroupWhenFull: true
+                        }
+                    })
+                    .then((editor: any) => {
+                        summaryEditorRef.current = editor;
+                        editor.setData(editingSpeaker.report_summary || '');
+                    })
+                    .catch((err: any) => {
+                        console.error("Error initializing summary editor:", err);
+                    });
+            }
+        }
+        // Cleanup on modal close
+        return () => {
+            if (summaryEditorRef.current) {
+                summaryEditorRef.current.destroy().catch((err: any) => console.error("Summary editor destroy error:", err));
+                summaryEditorRef.current = null;
+            }
+        };
+    }, [isEditModalOpen, editingSpeaker.report_summary]);
 
   const fetchSpeakers = async () => {
     setLoading(true);
@@ -193,6 +224,7 @@ const Speakers: React.FC = () => {
         workplace: '',
         report_title_vn: '',
         report_title_en: '',
+        report_summary: '',
         status: Status.PENDING,
         speaker_type: 'Báo cáo viên',
       });
@@ -231,6 +263,9 @@ const Speakers: React.FC = () => {
     setError(null);
 
     const speakerData = { ...editingSpeaker };
+    if (summaryEditorRef.current) {
+        speakerData.report_summary = summaryEditorRef.current.getData();
+    }
     if (isNew) {
       delete speakerData.id;
     }
@@ -688,6 +723,13 @@ const Speakers: React.FC = () => {
                             <h4 className="text-sm font-medium text-gray-500">Bài báo cáo (Tiếng Anh)</h4>
                             <p className="text-gray-800">{viewingSpeaker.report_title_en || <span className="text-gray-400">Chưa có</span>}</p>
                         </div>
+                         <div>
+                            <h4 className="text-sm font-medium text-gray-500">Tóm tắt bài báo cáo</h4>
+                            <div
+                                className="rich-text-content text-sm mt-1 text-gray-800"
+                                dangerouslySetInnerHTML={{ __html: viewingSpeaker.report_summary || '<span class="text-gray-400">Chưa có</span>' }}
+                            />
+                        </div>
                         <div>
                             <h4 className="text-sm font-medium text-gray-500">Tài liệu đính kèm</h4>
                             <ul className="list-disc list-inside space-y-1 mt-1 text-sm">
@@ -772,10 +814,10 @@ const Speakers: React.FC = () => {
       {/* Add/Edit Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-4">{isNew ? 'Thêm mới' : 'Chỉnh sửa thông tin'}</h2>
             {error && <p className="mb-4 text-red-500">{error}</p>}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Column 1 */}
                 <div className="space-y-4">
                     <div>
@@ -812,22 +854,26 @@ const Speakers: React.FC = () => {
                         <label className="block text-sm font-medium text-gray-700">Nơi công tác</label>
                         <input type="text" name="workplace" value={editingSpeaker.workplace || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"/>
                     </div>
-                </div>
-                 {/* Column 2 */}
-                <div className="space-y-4">
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Tiêu đề bài báo cáo (Tiếng Việt)</label>
-                        <textarea name="report_title_vn" value={editingSpeaker.report_title_vn || ''} onChange={handleChange} rows={3} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"/>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Tiêu đề bài báo cáo (Tiếng Anh)</label>
-                        <textarea name="report_title_en" value={editingSpeaker.report_title_en || ''} onChange={handleChange} rows={3} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"/>
-                    </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
                         <select name="status" value={editingSpeaker.status || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
                             {speakerStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
+                    </div>
+                </div>
+                 {/* Column 2 */}
+                <div className="space-y-4">
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700">Tiêu đề bài báo cáo (Tiếng Việt)</label>
+                        <textarea name="report_title_vn" value={editingSpeaker.report_title_vn || ''} onChange={handleChange} rows={2} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Tiêu đề bài báo cáo (Tiếng Anh)</label>
+                        <textarea name="report_title_en" value={editingSpeaker.report_title_en || ''} onChange={handleChange} rows={2} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"/>
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700">Tóm tắt bài báo cáo</label>
+                        <textarea id="report_summary_editor" name="report_summary" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"/>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Tệp bài tóm tắt (Abstract)</label>
@@ -848,10 +894,10 @@ const Speakers: React.FC = () => {
                         {editingSpeaker.passport_url && <a href={editingSpeaker.passport_url} target="_blank" rel="noopener noreferrer" className="text-primary text-sm hover:underline">Xem ảnh</a>}
                     </div>
                 </div>
-            </div>
-            <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700">Ghi chú "Take care"</label>
-                <textarea name="take_care_notes" value={editingSpeaker.take_care_notes || ''} onChange={handleChange} rows={4} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"/>
+                 <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">Ghi chú "Take care"</label>
+                    <textarea name="take_care_notes" value={editingSpeaker.take_care_notes || ''} onChange={handleChange} rows={3} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"/>
+                </div>
             </div>
             <div className="mt-6 flex justify-end space-x-3">
               <button onClick={closeModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Hủy</button>

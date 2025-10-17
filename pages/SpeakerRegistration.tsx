@@ -19,6 +19,7 @@ const SpeakerRegistration: React.FC = () => {
         workplace: '',
         report_title_vn: '',
         report_title_en: '',
+        report_summary: '',
         speaker_type: 'Báo cáo viên',
     };
 
@@ -207,6 +208,10 @@ const SpeakerRegistration: React.FC = () => {
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700">Tên bài báo cáo (Tiếng Anh)</label>
                                 <textarea name="report_title_en" value={formData.report_title_en || ''} onChange={handleChange} rows={2} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"/>
+                            </div>
+                             <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700">Tóm tắt bài báo cáo</label>
+                                <textarea name="report_summary" value={formData.report_summary || ''} onChange={handleChange} rows={5} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"/>
                             </div>
                             <FileInput label="Tệp bài tóm tắt (Abstract)" fieldName="abstract_file_url" accept=".pdf,.doc,.docx" />
                             <FileInput label="Tệp bài báo cáo đầy đủ" fieldName="report_file_url" accept=".pdf,.ppt,.pptx,.doc,.docx" />
