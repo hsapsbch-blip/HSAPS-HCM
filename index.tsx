@@ -11,22 +11,6 @@ declare global {
   }
 }
 
-// Re-add the standard PWA service worker registration.
-// This ensures /service-worker.js is correctly registered, fixing the 404 error
-// and allowing both PWA functionality and the OneSignal SDK to work.
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(registration => {
-        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-      })
-      .catch(error => {
-        console.error('ServiceWorker registration failed: ', error);
-      });
-  });
-}
-
-
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");

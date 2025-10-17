@@ -27,7 +27,11 @@ const OneSignalInitializer = () => {
         // QUAN TRỌNG: Đây là nơi bạn cần cập nhật App ID từ tài khoản OneSignal của bạn.
         appId: "7e26cfd8-982d-4e68-9b7a-13d8770447bb", 
         allowLocalhostAsSecureOrigin: true,
+        // Explicitly define paths and origin to fix cross-origin and 404 errors
         origin: 'https://hsaps-hcm.vercel.app',
+        serviceWorkerPath: 'service-worker.js',
+        serviceWorkerUpdaterPath: 'service-worker.js',
+        serviceWorkerParam: { scope: '/' },
       });
 
       // Wait for initialization to finish before adding event listeners.
