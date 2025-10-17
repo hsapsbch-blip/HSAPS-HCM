@@ -97,8 +97,18 @@ const OneSignalInitializer = () => {
         // Check if a user is logged in before attempting to log out
         const externalId = OneSignal.User.getExternalId();
         if (externalId) {
-             console.log('[OneSignal Debug] Logging out OneSignal user.');
-             await OneSignal.logout();
+             console.log('[OneSignal Debug] Attempting to log out OneSignal user.');
+             try {
+                await OneSignal.logout();
+                console.log('[OneSignal Debug] Logout successful.');
+             } catch (e: any) {
+                // Gracefully handle the "No aliases found" error, which is a known race condition
+                if (e && e.message && e.message.includes('No aliases found')) {
+                    console.warn('[OneSignal Debug] Logout failed because no alias was found on the server. This is a harmless state mismatch.');
+                } else {
+                    console.error('[OneSignal Error] An unexpected error occurred during logout:', e);
+                }
+             }
         }
       }
     };
