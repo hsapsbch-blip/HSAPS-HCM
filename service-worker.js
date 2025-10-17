@@ -1,13 +1,7 @@
-// Add OneSignal configuration to explicitly set the origin and appId.
-// This is crucial for environments like Vercel or sandboxed iframes.
-self.OneSignal = self.OneSignal || {};
-self.OneSignal.init = {
-  appId: '7e26cfd8-982d-4e68-9b7a-13d8770447bb',
-  origin: 'https://hsaps-hcm.vercel.app',
-  serviceWorkerParam: { scope: '/' },
-};
+// The OneSignal init configuration is now handled by the OneSignalInitializer.tsx component on the main page.
+// The service worker only needs to import the SDK script.
 
-// IMPORTANT: This import must be after the init config.
+// IMPORTANT: This import must be at the top level of the service worker.
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
 const CACHE_NAME = 'hsaps-event-manager-v11'; // Tăng phiên bản cache để cập nhật
