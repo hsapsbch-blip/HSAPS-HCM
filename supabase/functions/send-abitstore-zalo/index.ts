@@ -1,8 +1,6 @@
+// Fix: Moved reference directive to the first line to ensure it's processed correctly by the compiler, resolving Deno namespace errors.
+/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
 
-
-
-// FIX: Replaced the incorrect Supabase functions type reference with the Deno namespace reference to resolve type errors.
-/// <reference lib="deno.ns" />
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 

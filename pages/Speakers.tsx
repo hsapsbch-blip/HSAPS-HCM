@@ -4,6 +4,13 @@ import { Speaker, Status, EmailTemplate } from '../types';
 import { useAuth } from '../App';
 import { GridIcon } from '../components/icons/GridIcon';
 import { ListIcon } from '../components/icons/ListIcon';
+import { useToast } from '../contexts/ToastContext';
+
+declare global {
+  interface Window {
+    ClassicEditor: any;
+  }
+}
 
 type UploadingState = {
   avatar_url: boolean;
@@ -36,6 +43,7 @@ const renderTypeBadge = (type: Speaker['speaker_type']) => {
 
 const Speakers: React.FC = () => {
   const { hasPermission } = useAuth();
+  const { addToast } = useToast();
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +64,7 @@ const Speakers: React.FC = () => {
     report_file_url: false,
   });
   
-  const [activeTab, setActiveTab] = useState<'details' | 'email'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'email' | 'take_care'>('details');
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
@@ -73,6 +81,10 @@ const Speakers: React.FC = () => {
   const [viewMode, setViewMode] = useState<'card' | 'table'>(
     () => (localStorage.getItem('speakerViewMode') as 'card' | 'table') || 'card'
   );
+
+  const [takeCareNotes, setTakeCareNotes] = useState('');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const takeCareEditorRef = useRef<any>(null);
 
 
   useEffect(() => {
@@ -97,6 +109,41 @@ const Speakers: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+  
+  // Effect to initialize and destroy CKEditor for the "Take care" tab
+  useEffect(() => {
+    if (isViewModalOpen && activeTab === 'take_care' && window.ClassicEditor) {
+        const element = document.querySelector<HTMLElement>('#take_care_notes_editor');
+        if (element && !takeCareEditorRef.current) {
+            window.ClassicEditor
+                .create(element, {
+                    toolbar: {
+                        items: [
+                            'undo', 'redo', '|', 'heading', '|', 
+                            'bold', 'italic', '|', 'link', 'bulletedList', 'numberedList', 'blockQuote'
+                        ],
+                        shouldNotGroupWhenFull: true
+                    }
+                })
+                .then((editor: any) => {
+                    takeCareEditorRef.current = editor;
+                })
+                .catch((err: any) => {
+                    console.error("Error initializing CKEditor for Take Care:", err);
+                });
+        }
+    }
+
+    // Cleanup function: destroy the editor instance when the modal closes or tab changes
+    return () => {
+        if (takeCareEditorRef.current) {
+            takeCareEditorRef.current.destroy().catch((err: any) => {
+                console.error("Editor destroy error:", err);
+            });
+            takeCareEditorRef.current = null;
+        }
+    };
+  }, [isViewModalOpen, activeTab]);
 
   const fetchSpeakers = async () => {
     setLoading(true);
@@ -155,6 +202,7 @@ const Speakers: React.FC = () => {
   
   const openViewModal = (speaker: Speaker) => {
     setViewingSpeaker(speaker);
+    setTakeCareNotes(speaker.take_care_notes || '');
     setActiveTab('details');
     setEmailStatus(null);
     setSelectedTemplate('');
@@ -333,6 +381,36 @@ const Speakers: React.FC = () => {
         setIsSendingEmail(false);
     }
   };
+  
+    const handleSaveTakeCareNotes = async () => {
+    if (!viewingSpeaker || !hasPermission('speakers:edit') || !takeCareEditorRef.current) {
+        addToast("Không thể lưu: thiếu thông tin hoặc quyền truy cập.", "error");
+        return;
+    }
+    setIsSavingNotes(true);
+    setError(null);
+
+    const notesData = takeCareEditorRef.current.getData();
+
+    const { error: updateError } = await supabase
+        .from('speakers')
+        .update({ take_care_notes: notesData })
+        .eq('id', viewingSpeaker.id);
+
+    if (updateError) {
+        setError('Lỗi khi lưu ghi chú: ' + updateError.message);
+        addToast('Lỗi khi lưu ghi chú.', 'error');
+    } else {
+        addToast('Đã lưu ghi chú thành công!', 'success');
+        const updatedSpeaker = { ...viewingSpeaker, take_care_notes: notesData };
+        setViewingSpeaker(updatedSpeaker);
+        setSpeakers(currentSpeakers =>
+            currentSpeakers.map(s => s.id === viewingSpeaker.id ? updatedSpeaker : s)
+        );
+    }
+    setIsSavingNotes(false);
+  };
+
 
   const renderStatusBadge = (status: Status, interactive: boolean = false, onClick?: () => void) => {
     const statusMap: { [key in Status]?: string } = {
@@ -388,8 +466,8 @@ const Speakers: React.FC = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-            <h1 className="text-3xl font-bold text-gray-800">Quản lý Chủ tọa/Báo cáo viên</h1>
-            <p className="mt-2 text-gray-600">Thêm mới, xem và chỉnh sửa thông tin cho chủ tọa và báo cáo viên.</p>
+            <h1 className="text-3xl font-bold text-gray-800">Quản lý CT/BCV</h1>
+            <p className="mt-2 text-gray-600">Thêm mới, xem và chỉnh sửa thông tin cho Chủ tọa và Báo cáo viên.</p>
         </div>
         {hasPermission('speakers:create') && (
             <button
@@ -582,6 +660,9 @@ const Speakers: React.FC = () => {
                     <button onClick={() => setActiveTab('email')} className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'email' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
                         Gửi Email
                     </button>
+                    <button onClick={() => setActiveTab('take_care')} className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'take_care' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                        Take care
+                    </button>
                 </nav>
             </div>
             {activeTab === 'details' && (
@@ -654,6 +735,31 @@ const Speakers: React.FC = () => {
                             {isSendingEmail ? 'Đang gửi...' : 'Gửi Email'}
                         </button>
                     </div>
+                </div>
+            )}
+            {activeTab === 'take_care' && (
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="take_care_notes_editor" className="block text-sm font-medium text-gray-700">Ghi chú "Take care"</label>
+                        <textarea 
+                            id="take_care_notes_editor"
+                            defaultValue={takeCareNotes}
+                            rows={8}
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary"
+                            placeholder="Ghi chú về đưa đón, ăn ở, sở thích đặc biệt..."
+                        />
+                    </div>
+                    {hasPermission('speakers:edit') && (
+                        <div className="flex justify-end">
+                            <button
+                                onClick={handleSaveTakeCareNotes}
+                                disabled={isSavingNotes}
+                                className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-dark disabled:opacity-50"
+                            >
+                                {isSavingNotes ? 'Đang lưu...' : 'Lưu ghi chú'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
             <div className="mt-6 flex justify-end">
@@ -742,6 +848,10 @@ const Speakers: React.FC = () => {
                         {editingSpeaker.passport_url && <a href={editingSpeaker.passport_url} target="_blank" rel="noopener noreferrer" className="text-primary text-sm hover:underline">Xem ảnh</a>}
                     </div>
                 </div>
+            </div>
+            <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700">Ghi chú "Take care"</label>
+                <textarea name="take_care_notes" value={editingSpeaker.take_care_notes || ''} onChange={handleChange} rows={4} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"/>
             </div>
             <div className="mt-6 flex justify-end space-x-3">
               <button onClick={closeModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Hủy</button>

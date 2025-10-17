@@ -14,7 +14,7 @@ import { UsersIcon } from './components/icons/UsersIcon';
 export const NAV_ITEMS = [
   { href: '/', label: 'Bảng điều khiển', icon: <DashboardIcon className="w-5 h-5" />, permission: 'dashboard:view' },
   { href: '/submissions', label: 'Đăng ký', icon: <SubmissionsIcon className="w-5 h-5" />, permission: 'submissions:view' },
-  { href: '/speakers', label: 'Chủ tọa/Báo cáo viên', icon: <SpeakersIcon className="w-5 h-5" />, permission: 'speakers:view' },
+  { href: '/speakers', label: 'CT/BCV', icon: <SpeakersIcon className="w-5 h-5" />, permission: 'speakers:view' },
   { href: '/sponsors', label: 'Nhà tài trợ', icon: <SponsorsIcon className="w-5 h-5" />, permission: 'sponsors:view' },
   { href: '/program', label: 'Chương trình', icon: <ProgramIcon className="w-5 h-5" />, permission: 'program:view' },
   { href: '/finance', label: 'Thu Chi', icon: <FinanceIcon className="w-5 h-5" />, permission: 'finance:view' },

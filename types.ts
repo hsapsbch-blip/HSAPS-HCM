@@ -109,6 +109,7 @@ export interface Speaker {
   passport_url?: string | null;
   abstract_file_url?: string | null;
   report_file_url?: string | null;
+  take_care_notes?: string | null;
 }
 
 export interface ProgramItem {

@@ -1,8 +1,5 @@
-
-
-
-// FIX: Replaced the incorrect Supabase functions type reference with the Deno namespace reference to resolve type errors.
-/// <reference lib="deno.ns" />
+// Fix: Moved reference directive to the first line to ensure it's processed correctly by the compiler, resolving Deno namespace errors.
+/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
 
 // File: supabase/functions/send-email/index.ts
 // Hoàn thiện và sử dụng Resend API - một phương pháp đơn giản và đáng tin cậy hơn.

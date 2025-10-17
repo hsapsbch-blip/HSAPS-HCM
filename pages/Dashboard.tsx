@@ -46,8 +46,8 @@ const SubmissionStatusChart: React.FC<{ data: Record<string, number> }> = ({ dat
         [Status.COMPLETED]: { label: 'Hoàn thành', color: 'bg-gray-500' },
     };
     
-    // FIX: Removed explicit types from reduce callback to allow for correct type inference.
-    const total = Object.values(data).reduce((sum, count) => sum + count, 0);
+    // Fix: Added explicit types to the reduce callback parameters to resolve arithmetic operation error.
+    const total = Object.values(data).reduce((sum: number, count: number) => sum + count, 0);
     if (total === 0) return <p className="text-sm text-gray-500 text-center py-4">Chưa có dữ liệu đăng ký.</p>;
 
     return (

@@ -1,19 +1,27 @@
-const CACHE_NAME = 'hsaps-event-manager-v3'; // Tăng phiên bản cache
+const CACHE_NAME = 'hsaps-event-manager-v4'; // Tăng phiên bản cache
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json'
-  // Đã xóa các URL icon của Supabase để việc cài đặt diễn ra ổn định.
-  // Chúng sẽ được cache lại khi được sử dụng lần đầu bởi trình xử lý fetch.
+  '/manifest.json',
+  '/index.tsx', // Cache tệp JS chính
+  'https://cdn.tailwindcss.com', // Cache thư viện CSS chính
+  'https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js', // Cache thư viện QRCode
+  'https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js', // Cache trình soạn thảo
+  'https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-192.png', // Cache icon
+  'https://ickheuhelknxktukgmxh.supabase.co/storage/v1/object/public/event_assets/documents/icon-512.png' // Cache icon
 ];
 
 // Cài đặt service worker và cache các tài nguyên ban đầu
 self.addEventListener('install', event => {
+  self.skipWaiting(); // Kích hoạt service worker mới ngay lập tức
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
+        console.log('Opened cache and caching initial assets');
         return cache.addAll(urlsToCache);
+      })
+      .catch(err => {
+        console.error('Failed to cache initial assets:', err);
       })
   );
 });
@@ -99,10 +107,11 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim()) // Kiểm soát các client ngay lập tức
   );
 });
