@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { BrandIcon } from '../components/icons/BrandIcon';
@@ -6,9 +6,18 @@ import { BrandIcon } from '../components/icons/BrandIcon';
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(true);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const rememberedEmail = localStorage.getItem('rememberedEmail');
+        if (rememberedEmail) {
+            setEmail(rememberedEmail);
+            setRememberMe(true);
+        }
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,6 +34,12 @@ const Login: React.FC = () => {
             setError('Email hoặc mật khẩu không đúng.');
             console.error('Login error:', error.message);
             return;
+        }
+
+        if (rememberMe) {
+            localStorage.setItem('rememberedEmail', email);
+        } else {
+            localStorage.removeItem('rememberedEmail');
         }
 
         if (data.user) {
@@ -87,6 +102,23 @@ const Login: React.FC = () => {
                                 placeholder='Nhập mật khẩu của bạn'
                             />
                         </div>
+
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <input
+                                    id="remember-me"
+                                    name="remember-me"
+                                    type="checkbox"
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
+                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                                />
+                                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                                    Nhớ đăng nhập
+                                </label>
+                            </div>
+                        </div>
+
                         <button
                             type="submit"
                             disabled={loading}
