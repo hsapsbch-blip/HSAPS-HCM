@@ -1,16 +1,4 @@
-// Explicitly define a configuration for OneSignal to use within the service worker scope.
-// This is a workaround for sandboxed environments (like the Vercel/AI Studio iframe) where the script's origin
-// might be incorrectly inferred as 'https://ai.studio' instead of the actual site URL.
-// By setting this config, we force the OneSignal worker to use the correct origin and paths.
-self.OneSignal = self.OneSignal || {};
-self.OneSignal.init = {
-  appId: "42cf9351-9baf-4cb8-8c69-9e660fe161bc", // This must match the main page init
-  origin: "https://hsaps-hcm.vercel.app",
-  serviceWorkerPath: "service-worker.js",
-  serviceWorkerUpdaterPath: "service-worker.js",
-  serviceWorkerParam: { scope: '/' },
-};
-
+// IMPORTANT: This import must be the first line in the service worker.
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
 const CACHE_NAME = 'hsaps-event-manager-v10'; // Tăng phiên bản cache để cập nhật

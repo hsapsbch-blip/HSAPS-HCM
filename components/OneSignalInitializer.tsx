@@ -37,8 +37,26 @@ const OneSignalInitializer = () => {
 
       // Wait for initialization to finish before adding event listeners.
       oneSignalInitPromise.then(() => {
+        console.log('[OneSignal Debug] Initialization complete.');
+
+        // Add extensive logging for debugging subscription status
+        window.OneSignal.on('subscriptionChange', function (isSubscribed: boolean) {
+            console.log("[OneSignal Debug] The user's subscription state is now:", isSubscribed);
+        });
+
+        // Check and log the current state immediately after init
+        window.OneSignal.isPushNotificationsEnabled((isEnabled: boolean) => {
+            console.log("[OneSignal Debug] Push notifications enabled:", isEnabled);
+            if(isEnabled) {
+                 window.OneSignal.getUserId((userId: string) => {
+                    console.log("[OneSignal Debug] Player ID:", userId);
+                 });
+            }
+        });
+
+
         window.OneSignal.on('notificationClick', (event) => {
-          console.log('OneSignal notification clicked:', event);
+          console.log('[OneSignal Debug] Notification clicked:', event);
           
           const url = event.notification.launchURL;
           if (url) {
@@ -48,7 +66,7 @@ const OneSignalInitializer = () => {
                 navigateRef.current(path);
               }
             } catch (e) {
-              console.error("Không thể phân tích launchURL:", e);
+              console.error("[OneSignal Error] Could not parse launchURL:", e);
             }
           }
         });
@@ -66,13 +84,13 @@ const OneSignalInitializer = () => {
     // Wait for the initialization promise to resolve before calling other methods.
     oneSignalInitPromise.then(() => {
       if (profile?.id) {
-        console.log(`Setting OneSignal external user ID: ${profile.id}`);
+        console.log(`[OneSignal Debug] Setting external user ID: ${profile.id}`);
         window.OneSignal.setExternalUserId(profile.id);
       } else {
         // Only attempt to remove the ID if it has been set.
-        window.OneSignal.getExternalUserId().then((externalUserId) => {
+        window.OneSignal.getExternalUserId().then((externalUserId: string | null) => {
           if (externalUserId) {
-            console.log('Removing OneSignal external user ID.');
+            console.log('[OneSignal Debug] Removing external user ID.');
             window.OneSignal.removeExternalUserId();
           }
         });

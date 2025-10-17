@@ -9,18 +9,8 @@ declare global {
   }
 }
 
-// Register Service Worker for PWA functionality
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(registration => {
-        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-      })
-      .catch(err => {
-        console.log('ServiceWorker registration failed: ', err);
-      });
-  });
-}
+// Service Worker registration is now handled by the OneSignal SDK via OneSignalInitializer.tsx
+// to prevent conflicts between the PWA setup and OneSignal's requirements.
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
