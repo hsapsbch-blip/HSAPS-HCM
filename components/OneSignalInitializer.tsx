@@ -24,7 +24,7 @@ const OneSignalInitializer = () => {
       // The init method returns a promise that resolves when initialization is complete.
       oneSignalInitPromise = window.OneSignal.init({
         // QUAN TRỌNG: Đây là nơi bạn cần cập nhật App ID từ tài khoản OneSignal của bạn.
-        appId: "42cf9351-9baf-4cb8-8c69-9e660fe161bc", 
+        appId: "7e26cfd8-982d-4e68-9b7a-13d8770447bb", 
         allowLocalhostAsSecureOrigin: true,
         // FIX: Explicitly define paths for both workers to prevent the SDK from
         // trying to register a worker from the wrong origin (e.g., ai.studio).
