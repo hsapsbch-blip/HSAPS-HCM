@@ -208,7 +208,7 @@ const Users: React.FC = () => {
                   <td data-label="Người dùng" className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
-                        <img className="h-10 w-10 rounded-full object-cover" src={profile.avatar || `https://i.pravatar.cc/150?u=${profile.id}`} alt={profile.full_name} />
+                        <img className="h-10 w-10 rounded-full object-cover" src={profile.avatar || `https://i.pravatar.cc/150?u=${profile.id}`} alt={profile.full_name} loading="lazy" />
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">{profile.full_name}</div>

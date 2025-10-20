@@ -302,7 +302,7 @@ const Program: React.FC = () => {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {item.speakers ? (
                                                      <div className="flex items-center">
-                                                        <img className="h-8 w-8 rounded-full object-cover" src={item.speakers.avatar_url || `https://i.pravatar.cc/150?u=${item.speakers.id}`} alt={item.speakers.full_name} />
+                                                        <img className="h-8 w-8 rounded-full object-cover" src={item.speakers.avatar_url || `https://i.pravatar.cc/150?u=${item.speakers.id}`} alt={item.speakers.full_name} loading="lazy" />
                                                         <div className="ml-3">
                                                             <div className="text-sm font-medium text-gray-900">{item.speakers.academic_rank} {item.speakers.full_name}</div>
                                                         </div>
@@ -352,7 +352,7 @@ const Program: React.FC = () => {
 
                                     {item.speakers ? (
                                         <div className="mt-3 pt-3 border-t border-gray-100 flex items-center space-x-3">
-                                            <img className="h-10 w-10 rounded-full object-cover" src={item.speakers.avatar_url || `https://i.pravatar.cc/150?u=${item.speakers.id}`} alt={item.speakers.full_name} />
+                                            <img className="h-10 w-10 rounded-full object-cover" src={item.speakers.avatar_url || `https://i.pravatar.cc/150?u=${item.speakers.id}`} alt={item.speakers.full_name} loading="lazy" />
                                             <div>
                                                 <p className="text-sm font-medium text-gray-900">{item.speakers.academic_rank} {item.speakers.full_name}</p>
                                             </div>

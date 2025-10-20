@@ -40,6 +40,7 @@ serve(async (req) => {
       app_id: appId,
       include_external_user_ids: userIds, // Target specific users
       channel_for_external_user_ids: "push", // Explicitly specify the push channel
+      isAnyWeb: true, // Explicitly target web push subscribers to avoid channel ambiguity
       headings: { "en": title },
       contents: { "en": message },
       url: url, // URL to open when the notification is clicked

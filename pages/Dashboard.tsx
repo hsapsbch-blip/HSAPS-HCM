@@ -263,7 +263,7 @@ const Dashboard: React.FC = () => {
                             return (
                                 <div key={task.id} className="flex justify-between items-center pb-2 border-b border-gray-100 last:border-b-0">
                                     <div className="flex items-center space-x-3">
-                                        <img className="h-9 w-9 rounded-full object-cover" src={task.profiles?.avatar || `https://i.pravatar.cc/150?u=${task.assignee_id}`} alt={task.profiles?.full_name || 'Unassigned'} />
+                                        <img className="h-9 w-9 rounded-full object-cover" src={task.profiles?.avatar || `https://i.pravatar.cc/150?u=${task.assignee_id}`} alt={task.profiles?.full_name || 'Unassigned'} loading="lazy" />
                                         <div>
                                             <p className="font-medium text-gray-700">{task.title}</p>
                                             <p className="text-sm text-gray-500">{task.profiles?.full_name || 'Chưa giao'}</p>

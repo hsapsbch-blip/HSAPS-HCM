@@ -24,7 +24,7 @@ const EmailSettings = lazy(() => import('./pages/settings/EmailSettings'));
 const ZaloSettings = lazy(() => import('./pages/settings/ZaloSettings'));
 const EmailTemplates = lazy(() => import('./pages/settings/EmailTemplates'));
 const AbitstoreSettings = lazy(() => import('./pages/settings/AbitstoreSettings'));
-import SpeakerRegistration from './pages/SpeakerRegistration'; // Eagerly import to fix loading issue
+const SpeakerRegistration = lazy(() => import('./pages/SpeakerRegistration'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 
@@ -32,7 +32,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
-import OneSignalInitializer from './components/OneSignalInitializer';
+import OneSignalInitializer from './OneSignalInitializer';
 
 // Auth context
 interface AuthContextType {

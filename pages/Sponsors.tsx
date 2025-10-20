@@ -348,7 +348,7 @@ const Sponsors: React.FC = () => {
                                     <td data-label="Nhà tài trợ" className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
                                             <div className="flex-shrink-0 h-10 w-10">
-                                                <img className="h-10 w-10 rounded-full object-contain bg-gray-50" src={getTransformedImageUrl(s.logo_url, 80, 80) || `https://i.pravatar.cc/150?u=${s.id}`} alt={s.name} />
+                                                <img className="h-10 w-10 rounded-full object-contain bg-gray-50" src={getTransformedImageUrl(s.logo_url, 80, 80) || `https://i.pravatar.cc/150?u=${s.id}`} alt={s.name} loading="lazy" />
                                             </div>
                                             <div className="ml-4">
                                                 <div className="text-sm font-medium text-gray-900">{s.name}</div>

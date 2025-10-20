@@ -372,7 +372,7 @@ const Tasks: React.FC = () => {
                                     <td data-label="Người thực hiện" className="px-6 py-4 whitespace-nowrap">
                                         {t.profiles ? (
                                             <div className="flex items-center">
-                                                <img className="h-8 w-8 rounded-full object-cover" src={t.profiles.avatar || `https://i.pravatar.cc/150?u=${t.assignee_id}`} alt={t.profiles.full_name} />
+                                                <img className="h-8 w-8 rounded-full object-cover" src={t.profiles.avatar || `https://i.pravatar.cc/150?u=${t.assignee_id}`} alt={t.profiles.full_name} loading="lazy" />
                                                 <span className="ml-2 text-sm text-gray-800">{t.profiles.full_name}</span>
                                             </div>
                                         ) : <span className="text-xs text-gray-400">Chưa giao</span>}

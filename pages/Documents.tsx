@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { supabase, uploadFileToStorage } from '../supabaseClient';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { supabase, uploadFileToStorage, getTransformedImageUrl } from '../supabaseClient';
 import { EventDocument, DocumentType } from '../types';
 import { useAuth } from '../App';
 
 import { ShareIcon } from '../components/icons/ShareIcon';
-import ShareDocumentModal from '../components/ShareDocumentModal';
+const ShareDocumentModal = lazy(() => import('../components/ShareDocumentModal'));
+
 
 // Icon components for different file types
 const FileIcon = ({ className }: { className?: string }) => (
@@ -182,7 +183,7 @@ const Documents: React.FC = () => {
     
     const getIconForType = (doc: EventDocument) => {
         if (doc.type === DocumentType.IMAGE && doc.thumbnail_url) {
-            return <img src={doc.thumbnail_url} alt={doc.name} className="w-full h-full object-cover" />;
+            return <img src={getTransformedImageUrl(doc.thumbnail_url, 320, 320)} alt={doc.name} className="w-full h-full object-cover" loading="lazy" />;
         }
         const iconProps = { className: "w-16 h-16 text-gray-400" };
         switch (doc.type) {
@@ -282,11 +283,13 @@ const Documents: React.FC = () => {
                 </div>
             )}
             
-            <ShareDocumentModal 
-                isOpen={!!documentToShare}
-                onClose={closeShareModal}
-                document={documentToShare}
-            />
+            <Suspense fallback={null}>
+                <ShareDocumentModal 
+                    isOpen={!!documentToShare}
+                    onClose={closeShareModal}
+                    document={documentToShare}
+                />
+            </Suspense>
             
              {/* Add/Edit Modal */}
             {isModalOpen && (

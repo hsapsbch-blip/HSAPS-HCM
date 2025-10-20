@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { NAV_ITEMS } from '../constants';
 import { useAuth } from '../App';
@@ -9,7 +9,8 @@ import { MenuIcon } from './icons/MenuIcon';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { DownloadIcon } from './icons/DownloadIcon';
-import ChangePasswordModal from './ChangePasswordModal';
+
+const ChangePasswordModal = lazy(() => import('./ChangePasswordModal'));
 
 // Helper function to format time difference
 const timeSince = (dateString: string) => {
@@ -273,7 +274,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           )}
         </div>
       </header>
-      <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} />
+      <Suspense fallback={null}>
+        <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} />
+      </Suspense>
     </>
   );
 };
