@@ -81,6 +81,31 @@ const Tasks: React.FC = () => {
         else setProfiles(data || []);
     };
 
+    const sendPushNotification = async (userIds: string[], title: string, message: string) => {
+        if (!userIds || userIds.length === 0) return;
+        
+        // The URL the user will be directed to when they click the notification.
+        const url = `https://hsaps-hcm.vercel.app/#/tasks`;
+
+        try {
+            const { error } = await supabase.functions.invoke('send-onesignal-notification', {
+                body: {
+                    userIds,
+                    title,
+                    message,
+                    url,
+                },
+            });
+            if (error) {
+                throw error;
+            }
+            console.log('Push notification sent successfully to:', userIds);
+        } catch (err: any) {
+            console.error('Error sending push notification:', err.message);
+            addToast(`Gửi thông báo đẩy thất bại: ${err.message}`, 'error');
+        }
+    };
+
     const openModal = (task: Partial<Task> | null = null) => {
         const canPerformAction = task ? hasPermission('tasks:edit') : hasPermission('tasks:create');
         if (!canPerformAction) {
@@ -125,7 +150,6 @@ const Tasks: React.FC = () => {
         setError(null);
 
         const originalTask = isNew ? null : tasks.find(t => t.id === editingTask.id);
-        // Fix: The destructured 'profiles' property was shadowing the 'profiles' state array. Renamed to '_removedProfiles' to avoid conflict.
         const { profiles: _removedProfiles, ...taskData } = editingTask;
 
         if (isNew) {
@@ -133,12 +157,63 @@ const Tasks: React.FC = () => {
         }
 
         try {
-            const { error } = isNew
-                ? await supabase.from('tasks').insert([taskData])
-                : await supabase.from('tasks').update(taskData).eq('id', editingTask.id!);
-
-            if (error) throw error;
+            const request = isNew
+                ? supabase.from('tasks').insert([taskData])
+                : supabase.from('tasks').update(taskData).eq('id', editingTask.id!);
             
+            const { data: savedData, error } = await request.select().single();
+
+            if (error || !savedData) {
+                throw error || new Error("Không thể lưu và lấy lại dữ liệu công việc.");
+            }
+            
+            // --- OneSignal Push Notification Logic ---
+            const newAssigneeId = savedData.assignee_id;
+            const oldAssigneeId = originalTask?.assignee_id;
+            const taskTitle = savedData.title;
+            const assignerName = currentUser?.full_name || 'Hệ thống';
+
+            if (isNew) {
+                if (newAssigneeId) {
+                    await sendPushNotification(
+                        [newAssigneeId],
+                        'Công việc mới được giao',
+                        `${assignerName} đã giao cho bạn công việc mới: "${taskTitle}"`
+                    );
+                }
+            } else { // It's an update
+                if (newAssigneeId && newAssigneeId !== oldAssigneeId) {
+                    // Re-assigned
+                    await sendPushNotification(
+                        [newAssigneeId],
+                        'Bạn có công việc mới',
+                        `${assignerName} đã giao cho bạn công việc: "${taskTitle}"`
+                    );
+                    if (oldAssigneeId) {
+                        await sendPushNotification(
+                            [oldAssigneeId],
+                            'Công việc đã được gỡ bỏ',
+                            `Công việc "${taskTitle}" đã được giao cho người khác.`
+                        );
+                    }
+                } else if (!newAssigneeId && oldAssigneeId) {
+                    // Un-assigned
+                     await sendPushNotification(
+                        [oldAssigneeId],
+                        'Công việc đã được gỡ bỏ',
+                        `Bạn đã được gỡ khỏi công việc "${originalTask?.title}".`
+                    );
+                } else if (newAssigneeId) {
+                    // Details updated, assignee same
+                     await sendPushNotification(
+                        [newAssigneeId],
+                        'Công việc được cập nhật',
+                        `Thông tin công việc "${taskTitle}" đã được cập nhật.`
+                    );
+                }
+            }
+            
+            // In-app notification logic
             if (editingTask.assignee_id && (!originalTask || originalTask.assignee_id !== editingTask.assignee_id)) {
                 await createNotification({
                     user_id: editingTask.assignee_id,
@@ -175,12 +250,22 @@ const Tasks: React.FC = () => {
 
     const confirmDelete = async () => {
         if (!taskToDelete || !hasPermission('tasks:delete')) return;
+
+        const { assignee_id: assigneeId, title: taskTitle } = taskToDelete;
+
         const { error } = await supabase.from('tasks').delete().eq('id', taskToDelete.id);
         if (error) {
             const errorMessage = 'Lỗi khi xóa công việc: ' + error.message;
             setError(errorMessage);
             addToast(errorMessage, 'error');
         } else {
+            if (assigneeId) {
+                await sendPushNotification(
+                    [assigneeId],
+                    'Công việc đã bị xóa',
+                    `Công việc "${taskTitle}" mà bạn được giao đã bị xóa.`
+                );
+            }
             setTasks(tasks.filter(t => t.id !== taskToDelete.id));
             setTaskToDelete(null);
             addToast('Đã xóa công việc thành công.', 'success');
