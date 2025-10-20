@@ -392,16 +392,7 @@ const Submissions: React.FC = () => {
                 if (functionError) throw functionError;
                 console.log(`Payment confirmation email successfully sent to ${submission.email}`);
             } catch (emailError: any) {
-                let detailedError = emailError.message;
-                const responseBody = emailError?.context?.body || emailError?.context?.text;
-                if (typeof responseBody === 'string') {
-                    try {
-                        const errorJson = JSON.parse(responseBody);
-                        if (errorJson.error) {
-                            detailedError = errorJson.error;
-                        }
-                    } catch (e) { /* ignore */ }
-                }
+                const detailedError = emailError.context?.data?.error || emailError.message || "Lỗi không xác định.";
                 const errorMessage = `Đã lưu đăng ký, nhưng gửi email xác nhận tự động thất bại: ${detailedError}`;
                 setError(errorMessage);
                 // In a quick-change context, we might not be in a modal, so we just log the error.
@@ -576,22 +567,7 @@ const Submissions: React.FC = () => {
 
         } catch (err: any) {
             console.error("Email sending error:", err);
-            let detailedError = err.message || 'Đã xảy ra lỗi không xác định.';
-
-            const responseBody = err?.context?.body || err?.context?.text;
-            if (typeof responseBody === 'string') {
-                try {
-                    const errorJson = JSON.parse(responseBody);
-                    if (errorJson.error) {
-                        detailedError = errorJson.error;
-                    }
-                } catch (e) {
-                    if (responseBody.length > 0 && responseBody.length < 500) {
-                        detailedError = responseBody;
-                    }
-                }
-            }
-            
+            const detailedError = err.context?.data?.error || err.message || 'Đã xảy ra lỗi không xác định.';
             setEmailStatus({ type: 'error', message: 'Lỗi khi gửi email: ' + detailedError });
         } finally {
             setIsSendingEmail(false);

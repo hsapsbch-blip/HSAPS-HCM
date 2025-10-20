@@ -362,22 +362,7 @@ const Speakers: React.FC = () => {
 
     } catch (err: any) {
         console.error("Email sending error:", err);
-        let detailedError = err.message || 'Đã xảy ra lỗi không xác định.';
-
-        const responseBody = err?.context?.body || err?.context?.text;
-        if (typeof responseBody === 'string') {
-            try {
-                const errorJson = JSON.parse(responseBody);
-                if (errorJson.error) {
-                    detailedError = errorJson.error;
-                }
-            } catch (e) {
-                if (responseBody.length > 0 && responseBody.length < 500) {
-                    detailedError = responseBody;
-                }
-            }
-        }
-        
+        const detailedError = err.context?.data?.error || err.message || 'Đã xảy ra lỗi không xác định.';
         setEmailStatus({ type: 'error', message: 'Lỗi khi gửi email: ' + detailedError });
     } finally {
         setIsSendingEmail(false);

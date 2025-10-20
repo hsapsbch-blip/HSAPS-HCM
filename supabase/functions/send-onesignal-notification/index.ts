@@ -39,6 +39,7 @@ serve(async (req) => {
     const notificationPayload = {
       app_id: appId,
       include_external_user_ids: userIds, // Target specific users
+      channel_for_external_user_ids: "push", // Explicitly specify the push channel
       headings: { "en": title },
       contents: { "en": message },
       url: url, // URL to open when the notification is clicked
@@ -55,12 +56,26 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OneSignal API Error:", errorData);
-      throw new Error(`Lỗi từ OneSignal: ${JSON.stringify(errorData.errors)}`);
+      let errorBody;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        errorBody = await response.json();
+      } else {
+        errorBody = await response.text();
+      }
+      console.error("OneSignal API Error:", { status: response.status, body: errorBody });
+      const errorMessage = (typeof errorBody === 'object' && errorBody.errors)
+        ? JSON.stringify(errorBody.errors)
+        : (typeof errorBody === 'string' && errorBody.length > 0)
+        ? errorBody
+        : `Yêu cầu đến OneSignal thất bại với mã trạng thái ${response.status}.`;
+      
+      throw new Error(`Lỗi từ OneSignal: ${errorMessage}`);
     }
 
-    return new Response(JSON.stringify({ success: true, message: "Thông báo đã được gửi thành công." }), {
+    const responseData = await response.json();
+
+    return new Response(JSON.stringify({ success: true, message: "Thông báo đã được gửi thành công.", data: responseData }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

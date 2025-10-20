@@ -101,8 +101,10 @@ const Tasks: React.FC = () => {
             }
             console.log('Push notification sent successfully to:', userIds);
         } catch (err: any) {
-            console.error('Error sending push notification:', err.message);
-            addToast(`Gửi thông báo đẩy thất bại: ${err.message}`, 'error');
+            console.error('Error sending push notification:', err);
+            // Attempt to get the detailed error message from the function's response
+            const detailedError = err.context?.data?.error || err.message;
+            addToast(`Gửi thông báo đẩy thất bại: ${detailedError}`, 'error');
         }
     };
 
