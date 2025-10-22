@@ -55,6 +55,9 @@ const permissionGroups = {
     { id: 'documents:edit', label: 'Chỉnh sửa' },
     { id: 'documents:delete', label: 'Xóa' },
   ],
+  'Gửi Email': [
+    { id: 'email:send_bulk', label: 'Gửi email hàng loạt' },
+  ],
   'Cài đặt hệ thống': [
     { id: 'settings:view', label: 'Truy cập Cài đặt' },
     { id: 'settings:edit', label: 'Chỉnh sửa Email/Zalo' },

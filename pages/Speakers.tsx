@@ -125,7 +125,8 @@ const Speakers: React.FC = () => {
                             'bold', 'italic', '|', 'link', 'bulletedList', 'numberedList', 'blockQuote'
                         ],
                         shouldNotGroupWhenFull: true
-                    }
+                    },
+                    removePlugins: ['ImageUpload', 'EasyImage', 'CKFinder']
                 })
                 .then((editor: any) => {
                     takeCareEditorRef.current = editor;

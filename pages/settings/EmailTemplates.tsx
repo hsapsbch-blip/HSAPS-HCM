@@ -62,7 +62,8 @@ const EmailTemplates: React.FC = () => {
                     'bold', 'italic', '|', 'link', 'bulletedList', 'numberedList', 'blockQuote'
                 ],
                 shouldNotGroupWhenFull: true
-            }
+            },
+            removePlugins: ['ImageUpload', 'EasyImage', 'CKFinder']
           })
           .then((editor: any) => {
             editorInstances.current[template.id] = editor;

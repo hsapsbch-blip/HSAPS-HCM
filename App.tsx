@@ -23,6 +23,7 @@ const RoleManagement = lazy(() => import('./pages/settings/RoleManagement'));
 const EmailSettings = lazy(() => import('./pages/settings/EmailSettings'));
 const ZaloSettings = lazy(() => import('./pages/settings/ZaloSettings'));
 const EmailTemplates = lazy(() => import('./pages/settings/EmailTemplates'));
+const BulkEmail = lazy(() => import('./pages/BulkEmail'));
 const AbitstoreSettings = lazy(() => import('./pages/settings/AbitstoreSettings'));
 const SpeakerRegistration = lazy(() => import('./pages/SpeakerRegistration'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -306,6 +307,7 @@ const App: React.FC = () => {
                       <Route path="program" element={<Program />} />
                       <Route path="finance" element={<Finance />} />
                       <Route path="documents" element={<Documents />} />
+                      <Route path="bulk-email" element={<BulkEmail />} />
                       <Route path="settings" element={<Settings />}>
                           <Route index element={<Navigate to="roles" replace />} />
                           <Route path="roles" element={<RoleManagement />} />
