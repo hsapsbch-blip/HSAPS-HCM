@@ -51,7 +51,7 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${restApiKey}`,
+        "Authorization": `Bearer ${restApiKey}`,
       },
       body: JSON.stringify(notificationPayload),
     });
