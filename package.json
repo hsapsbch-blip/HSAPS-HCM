@@ -14,7 +14,6 @@
     "react-dom": "^19.1.1",
     "uuid": "^13.0.0",
     "@supabase/supabase-js": "^2.58.0",
-    "~deno": "^0.1.1",
     "jspdf": "2.5.1",
     "html2canvas": "1.4.1",
     "qrcode": "^1.5.4"
