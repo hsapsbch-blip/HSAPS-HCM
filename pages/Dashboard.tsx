@@ -46,8 +46,7 @@ const SubmissionStatusChart: React.FC<{ data: Record<string, number> }> = ({ dat
         [Status.COMPLETED]: { label: 'Hoàn thành', color: 'bg-gray-500' },
     };
     
-    // Fix: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
-    // Explicitly typing `count` as `number` ensures type safety for the reduce operation.
+    // Fix: Explicitly type the parameters of the reduce function to ensure type safety.
     const total = Object.values(data).reduce((sum: number, count: number) => sum + count, 0);
     if (total === 0) return <p className="text-sm text-gray-500 text-center py-4">Chưa có dữ liệu đăng ký.</p>;
 

@@ -77,6 +77,16 @@ const Sponsors: React.FC = () => {
         setLoading(false);
     };
 
+    const summary = useMemo(() => {
+        const totalAmount = sponsors.reduce((sum, s) => sum + (s.amount || 0), 0);
+        const paidAmount = sponsors
+            .filter(s => s.status === Status.PAYMENT_CONFIRMED)
+            .reduce((sum, s) => sum + (s.amount || 0), 0);
+        const pendingAmount = totalAmount - paidAmount;
+
+        return { totalAmount, paidAmount, pendingAmount };
+    }, [sponsors]);
+
     const openModal = (sponsor: Partial<Sponsor> | null = null) => {
         const canPerformAction = sponsor ? hasPermission('sponsors:edit') : hasPermission('sponsors:create');
         if (!canPerformAction) {
@@ -317,6 +327,22 @@ const Sponsors: React.FC = () => {
                 </div>
             </div>
             
+             {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-gray-500">Tổng giá trị tài trợ</h3>
+                    <p className="text-3xl font-bold text-blue-600 mt-2">{formatCurrency(summary.totalAmount)}</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-gray-500">Số tiền đã thanh toán</h3>
+                    <p className="text-3xl font-bold text-green-600 mt-2">{formatCurrency(summary.paidAmount)}</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-gray-500">Số tiền chờ thanh toán</h3>
+                    <p className="text-3xl font-bold text-orange-600 mt-2">{formatCurrency(summary.pendingAmount)}</p>
+                </div>
+            </div>
+
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4 md:space-x-4 mb-4">
                 <input
