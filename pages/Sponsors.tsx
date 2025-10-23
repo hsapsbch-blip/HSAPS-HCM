@@ -373,6 +373,7 @@ const Sponsors: React.FC = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nhà tài trợ</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gói tài trợ</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số tiền</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vị trí</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hợp đồng</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái HĐ</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
@@ -401,6 +402,7 @@ const Sponsors: React.FC = () => {
                                     </td>
                                     <td data-label="Gói tài trợ" className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{s.sponsorship_package}</td>
                                     <td data-label="Số tiền" className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-800">{formatCurrency(s.amount)}</td>
+                                    <td data-label="Vị trí" className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{s.location || <span className="text-gray-400">Chưa có</span>}</td>
                                     <td data-label="Hợp đồng" className="px-6 py-4 whitespace-nowrap text-sm">
                                         {s.contract_url ? (
                                             <a href={s.contract_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
