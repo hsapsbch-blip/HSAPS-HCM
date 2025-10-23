@@ -78,15 +78,38 @@
           content: none;
         }
 
+        /* Group Header for Responsive View */
+        .responsive-table tr.is-group-header {
+            margin-bottom: 0.5rem;
+            border: none;
+            border-radius: 0;
+            margin-top: 1.5rem;
+            background-color: transparent;
+        }
+        .responsive-table tr.is-group-header td {
+            background-color: #f3f4f6; /* bg-gray-100 */
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            position: static;
+            padding-left: 1rem;
+        }
+        .responsive-table tr.is-group-header td:before {
+            content: none;
+        }
+
+
         /* Improved Submission Card Layout */
         .responsive-table.submission-cards tr {
             padding: 0;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
         }
         /* Card Header */
         .responsive-table.submission-cards td:first-child {
             padding: 1rem;
             text-align: left;
-            justify-content: flex-start;
+            justify-content: space-between;
+            align-items: flex-start;
             border-bottom: 1px solid #e5e7eb;
             background-color: #f9fafb;
         }
@@ -96,7 +119,6 @@
         .responsive-table.submission-cards .responsive-name {
             font-size: 1.125rem; /* text-lg */
             font-weight: 600;
-            margin-bottom: 0.25rem;
         }
         .responsive-table.submission-cards .responsive-id {
             font-size: 0.875rem; /* text-sm */
@@ -113,6 +135,46 @@
         }
         /* Card Footer / Actions */
         .responsive-table.submission-cards td.actions-cell {
+            padding-left: 1rem;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 0;
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+            background-color: #f9fafb;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        
+        /* Sponsor Card Layout for Responsive View */
+        .responsive-table.sponsor-cards tr {
+            padding: 0;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+        .responsive-table.sponsor-cards td:first-child { /* Header */
+            padding: 1rem;
+            text-align: left;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+        }
+        .responsive-table.sponsor-cards td:first-child::before {
+            content: none;
+        }
+        .responsive-table.sponsor-cards .responsive-name {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* semibold */
+            color: #1f2937; /* text-gray-800 */
+        }
+        .responsive-table.sponsor-cards .responsive-subtext {
+            font-size: 0.875rem; /* text-sm */
+            color: #4b5563; /* text-gray-600 */
+        }
+        .responsive-table.sponsor-cards td:not(:first-child) { /* Body */
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+        .responsive-table.sponsor-cards td.actions-cell { /* Footer */
             padding-left: 1rem;
             border-top: 1px solid #e5e7eb;
             margin-top: 0;

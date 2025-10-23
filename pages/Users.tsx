@@ -3,6 +3,15 @@ import { supabase, uploadFileToStorage } from '../supabaseClient';
 import { Profile } from '../types';
 import { useAuth } from '../App';
 
+const toTitleCase = (str: string): string => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 const AccessDenied: React.FC = () => (
     <div>
         <h1 className="text-3xl font-bold text-red-600">Truy cập bị từ chối</h1>
@@ -140,7 +149,11 @@ const Users: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setEditingProfile(prev => ({ ...prev, [name]: value }));
+    if (name === 'full_name') {
+        setEditingProfile(prev => ({ ...prev, [name]: toTitleCase(value) }));
+    } else {
+        setEditingProfile(prev => ({ ...prev, [name]: value }));
+    }
   };
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

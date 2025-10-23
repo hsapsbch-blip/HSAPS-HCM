@@ -3,6 +3,15 @@ import { supabase, uploadFileToStorage, getTransformedImageUrl } from '../supaba
 import { Sponsor, Status } from '../types';
 import { useAuth } from '../App';
 
+const toTitleCase = (str: string): string => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 // Helper to format currency
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -209,6 +218,8 @@ const Sponsors: React.FC = () => {
             if (numericValue !== undefined && isNaN(numericValue)) return;
             
             setEditingSponsor(prev => ({ ...prev, amount: numericValue }));
+        } else if (name === 'contact_person') {
+            setEditingSponsor(prev => ({ ...prev, [name]: toTitleCase(value) }));
         } else {
             setEditingSponsor(prev => ({ ...prev, [name]: value }));
         }
@@ -330,7 +341,7 @@ const Sponsors: React.FC = () => {
                 {error && !isModalOpen && <p className="p-4 text-red-500">{error}</p>}
                 {!loading && filteredSponsors.length === 0 && <p className="p-4">Không có nhà tài trợ nào.</p>}
                 {!loading && filteredSponsors.length > 0 && (
-                    <table className="min-w-full divide-y divide-gray-200 responsive-table">
+                    <table className="min-w-full divide-y divide-gray-200 responsive-table sponsor-cards">
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nhà tài trợ</th>
@@ -346,14 +357,19 @@ const Sponsors: React.FC = () => {
                             {filteredSponsors.map(s => (
                                 <tr key={s.id}>
                                     <td data-label="Nhà tài trợ" className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <div className="flex-shrink-0 h-10 w-10">
-                                                <img className="h-10 w-10 rounded-full object-contain bg-gray-50" src={getTransformedImageUrl(s.logo_url, 80, 80) || `https://i.pravatar.cc/150?u=${s.id}`} alt={s.name} loading="lazy" />
+                                        <div className="flex justify-between items-start w-full">
+                                            <div className="flex items-center">
+                                                <div className="hidden lg:flex flex-shrink-0 h-10 w-10">
+                                                    <img className="h-10 w-10 rounded-full object-contain bg-gray-50" src={getTransformedImageUrl(s.logo_url, 80, 80) || `https://i.pravatar.cc/150?u=${s.id}`} alt={s.name} loading="lazy" />
+                                                </div>
+                                                <div className="lg:ml-4">
+                                                    <div className="text-sm font-medium text-gray-900 responsive-name">{s.name}</div>
+                                                    <div className="text-sm text-gray-500 responsive-subtext mt-1">{s.contact_person}</div>
+                                                    {s.phone && <div className="text-sm text-gray-400 responsive-subtext">{s.phone}</div>}
+                                                </div>
                                             </div>
-                                            <div className="ml-4">
-                                                <div className="text-sm font-medium text-gray-900">{s.name}</div>
-                                                <div className="text-sm text-gray-500">{s.contact_person}</div>
-                                                {s.phone && <div className="text-sm text-gray-400">{s.phone}</div>}
+                                            <div className="lg:hidden flex-shrink-0">
+                                                {renderStatusBadge(s.status)}
                                             </div>
                                         </div>
                                     </td>
@@ -371,34 +387,32 @@ const Sponsors: React.FC = () => {
                                     <td data-label="Trạng thái HĐ" className="px-6 py-4 whitespace-nowrap">
                                         {renderContractStatusBadge(s.contract_status)}
                                     </td>
-                                    <td data-label="Trạng thái" className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            {renderStatusBadge(s.status)}
-                                            {hasPermission('sponsors:edit') && (
-                                                <div className="flex items-center gap-1">
-                                                    {s.status === Status.PENDING && (
-                                                        <>
-                                                            <button title="Duyệt" onClick={() => handleStatusChange(s.id, Status.APPROVED)} className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 transition-colors">Duyệt</button>
-                                                            <button title="Từ chối" onClick={() => handleStatusChange(s.id, Status.REJECTED)} className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors">Từ chối</button>
-                                                        </>
-                                                    )}
-                                                    {s.status === Status.APPROVED && (
-                                                        <button title="Chuyển sang Chờ thanh toán" onClick={() => handleStatusChange(s.id, Status.PAYMENT_PENDING)} className="px-2 py-1 text-xs font-medium text-orange-700 bg-orange-100 rounded-md hover:bg-orange-200 transition-colors">Chờ TT</button>
-                                                    )}
-                                                    {s.status === Status.PAYMENT_PENDING && (
-                                                        <>
-                                                            <button title="Xác nhận đã thanh toán" onClick={() => handleStatusChange(s.id, Status.PAYMENT_CONFIRMED)} className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors">Xác nhận TT</button>
-                                                            <button title="Từ chối" onClick={() => handleStatusChange(s.id, Status.REJECTED)} className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors">Từ chối</button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
+                                    <td data-label="Trạng thái" className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                                        {renderStatusBadge(s.status)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium actions-cell">
-                                        <button onClick={() => openViewModal(s)} className="text-gray-600 hover:text-gray-900 mr-4">Xem</button>
-                                        {hasPermission('sponsors:edit') && <button onClick={() => openModal(s)} className="text-primary hover:text-primary-dark mr-4">Sửa</button>}
-                                        {hasPermission('sponsors:delete') && <button onClick={() => handleDelete(s)} className="text-red-600 hover:text-red-800">Xoá</button>}
+                                        <div className="flex flex-wrap gap-x-3 gap-y-2 lg:justify-end">
+                                            <button onClick={() => openViewModal(s)} className="text-gray-600 hover:text-gray-900">Xem</button>
+                                            {hasPermission('sponsors:edit') && <button onClick={() => openModal(s)} className="text-primary hover:text-primary-dark">Sửa</button>}
+
+                                            {hasPermission('sponsors:edit') && s.status === Status.PENDING && (
+                                                <>
+                                                    <button title="Duyệt" onClick={() => handleStatusChange(s.id, Status.APPROVED)} className="text-green-600 hover:text-green-800">Duyệt</button>
+                                                    <button title="Từ chối" onClick={() => handleStatusChange(s.id, Status.REJECTED)} className="text-red-600 hover:text-red-800">Từ chối</button>
+                                                </>
+                                            )}
+                                            {hasPermission('sponsors:edit') && s.status === Status.APPROVED && (
+                                                <button title="Chuyển sang Chờ thanh toán" onClick={() => handleStatusChange(s.id, Status.PAYMENT_PENDING)} className="text-orange-600 hover:text-orange-800">Chờ TT</button>
+                                            )}
+                                            {hasPermission('sponsors:edit') && s.status === Status.PAYMENT_PENDING && (
+                                                <>
+                                                    <button title="Xác nhận đã thanh toán" onClick={() => handleStatusChange(s.id, Status.PAYMENT_CONFIRMED)} className="text-blue-600 hover:text-blue-800">Xác nhận TT</button>
+                                                    <button title="Từ chối" onClick={() => handleStatusChange(s.id, Status.REJECTED)} className="text-red-600 hover:text-red-800">Từ chối</button>
+                                                </>
+                                            )}
+                                            
+                                            {hasPermission('sponsors:delete') && <button onClick={() => handleDelete(s)} className="text-red-600 hover:text-red-800">Xoá</button>}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

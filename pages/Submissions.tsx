@@ -7,6 +7,15 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import Badge from '../components/Badge';
 
+const toTitleCase = (str: string): string => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 const PAGE_SIZE = 20;
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -491,6 +500,8 @@ const Submissions: React.FC = () => {
             const numericValue = sanitizedValue === '' ? undefined : Number(sanitizedValue);
             if (numericValue !== undefined && isNaN(numericValue)) return;
             setEditingSubmission(prev => ({ ...prev, payment_amount: numericValue }));
+        } else if (name === 'full_name') {
+            setEditingSubmission(prev => ({ ...prev, [name]: toTitleCase(value) }));
         } else {
             setEditingSubmission(prev => ({ ...prev, [name]: value }));
         }
@@ -603,6 +614,21 @@ const Submissions: React.FC = () => {
         setSearchTerm(e.target.value);
         setCurrentPage(1);
     }
+    
+    const submissionsAwaitingPayment = useMemo(() => 
+        submissions.filter(s => 
+            s.status === Status.PENDING || 
+            s.status === Status.APPROVED || 
+            s.status === Status.PAYMENT_PENDING
+        ), [submissions]);
+
+    const submissionsConfirmed = useMemo(() => 
+        submissions.filter(s => s.status === Status.PAYMENT_CONFIRMED), 
+    [submissions]);
+
+    const submissionsRejected = useMemo(() => 
+        submissions.filter(s => s.status === Status.REJECTED), 
+    [submissions]);
 
     if (!hasPermission('submissions:view')) {
         return <AccessDenied />;
@@ -662,74 +688,191 @@ const Submissions: React.FC = () => {
                             </tr>
                         </thead>
                          <tbody className="bg-white divide-y-0">
-                            {submissions.map(s => (
-                                <tr key={s.id}>
-                                    <td data-label="Đại biểu" className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <div className="text-sm font-semibold text-gray-900 responsive-name">{s.full_name}</div>
-                                                <div className="text-sm text-gray-500 font-mono mt-1 responsive-id">{s.attendance_id}</div>
-                                            </div>
-                                            <div className="lg:hidden flex-shrink-0">
+                             {submissionsAwaitingPayment.length > 0 && (
+                                <>
+                                    <tr className="is-group-header">
+                                        <td colSpan={6} className="px-6 py-2 text-left text-sm font-semibold text-gray-700 bg-gray-100">
+                                            Chờ Xử Lý ({submissionsAwaitingPayment.length})
+                                        </td>
+                                    </tr>
+                                    {submissionsAwaitingPayment.map(s => (
+                                         <tr key={s.id} className="bg-white lg:bg-transparent shadow-sm lg:shadow-none">
+                                            <td data-label="Đại biểu" className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex justify-between items-start w-full">
+                                                    <div>
+                                                        <div className="text-sm font-semibold text-gray-900 responsive-name">{s.full_name}</div>
+                                                        <div className="text-sm text-gray-500 font-mono mt-1 responsive-id">{s.attendance_id}</div>
+                                                    </div>
+                                                    <div className="lg:hidden flex-shrink-0">
+                                                        {renderStatusBadge(s.status)}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td data-label="Loại" className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{s.attendee_type}</td>
+                                            <td data-label="Số tiền" className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-800">{formatCurrency(s.payment_amount)}</td>
+                                            <td data-label="Tài liệu" className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <div className="flex flex-col space-y-1 items-end lg:items-start">
+                                                    {s.payment_image_url ? (
+                                                        <button onClick={() => setViewingImage(s.payment_image_url)} className="text-primary hover:underline">Ảnh CK</button>
+                                                    ) : ( <span className="text-gray-400">Ảnh CK</span> )}
+                                                    {s.badge_url ? (
+                                                        <a href={s.badge_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">File In</a>
+                                                    ) : ( <span className="text-gray-400">File In</span> )}
+                                                </div>
+                                            </td>
+                                            <td data-label="Trạng thái" className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
                                                 {renderStatusBadge(s.status)}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td data-label="Loại" className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{s.attendee_type}</td>
-                                    <td data-label="Số tiền" className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-800">{formatCurrency(s.payment_amount)}</td>
-                                    <td data-label="Tài liệu" className="px-6 py-4 whitespace-nowrap text-sm">
-                                        <div className="flex flex-col space-y-1 items-end lg:items-start">
-                                            {s.payment_image_url ? (
-                                                <button onClick={() => setViewingImage(s.payment_image_url)} className="text-primary hover:underline">Ảnh CK</button>
-                                            ) : ( <span className="text-gray-400">Ảnh CK</span> )}
-                                            {s.badge_url ? (
-                                                <a href={s.badge_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">File In</a>
-                                            ) : ( <span className="text-gray-400">File In</span> )}
-                                        </div>
-                                    </td>
-                                    <td data-label="Trạng thái" className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
-                                        {renderStatusBadge(s.status)}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium actions-cell">
-                                       <div className="flex flex-wrap gap-x-3 gap-y-2 lg:justify-end">
-                                            <button onClick={() => openModal(s, true)} className="text-gray-600 hover:text-gray-900">Xem</button>
-                                            <button 
-                                                onClick={() => window.open(s.badge_url!, '_blank')} 
-                                                disabled={!s.badge_url}
-                                                className="text-indigo-600 hover:text-indigo-900 disabled:text-gray-400 disabled:cursor-not-allowed"
-                                            >
-                                                In thẻ
-                                            </button>
-                                            {s.badge_url && hasPermission('submissions:edit') && (
-                                                <button
-                                                    onClick={() => handleRegenerateBadge(s)}
-                                                    className="text-orange-600 hover:text-orange-900"
-                                                    title="Tạo lại file PDF in thẻ"
-                                                >
-                                                    Tạo lại
-                                                </button>
-                                            )}
-                                            {hasPermission('submissions:edit') && <button onClick={() => openModal(s, false)} className="text-primary hover:text-primary-dark">Sửa</button>}
-                                            
-                                            {hasPermission('submissions:approve') && s.status === Status.PENDING && (
-                                                <>
-                                                    <button onClick={() => handleStatusChange(s, Status.APPROVED)} className="text-green-600 hover:text-green-800">Duyệt</button>
-                                                    <button onClick={() => handleStatusChange(s, Status.REJECTED)} className="text-yellow-600 hover:text-yellow-800">Từ chối</button>
-                                                </>
-                                            )}
-                                            
-                                            {hasPermission('submissions:approve') && s.status === Status.PAYMENT_PENDING && (
-                                                <>
-                                                    <button onClick={() => handleStatusChange(s, Status.PAYMENT_CONFIRMED)} className="text-blue-600 hover:text-blue-800">Xác nhận TT</button>
-                                                    <button onClick={() => handleStatusChange(s, Status.REJECTED)} className="text-yellow-600 hover:text-yellow-800">Từ chối</button>
-                                                </>
-                                            )}
-                                            
-                                            {hasPermission('submissions:delete') && <button onClick={() => handleDelete(s)} className="text-red-600 hover:text-red-800">Xóa</button>}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium actions-cell">
+                                               <div className="flex flex-wrap gap-x-3 gap-y-2 lg:justify-end">
+                                                    <button onClick={() => openModal(s, true)} className="text-gray-600 hover:text-gray-900">Xem</button>
+                                                    <button 
+                                                        onClick={() => window.open(s.badge_url!, '_blank')} 
+                                                        disabled={!s.badge_url}
+                                                        className="text-indigo-600 hover:text-indigo-900 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                    >
+                                                        In thẻ
+                                                    </button>
+                                                    {s.badge_url && hasPermission('submissions:edit') && (
+                                                        <button
+                                                            onClick={() => handleRegenerateBadge(s)}
+                                                            className="text-orange-600 hover:text-orange-900"
+                                                            title="Tạo lại file PDF in thẻ"
+                                                        >
+                                                            Tạo lại
+                                                        </button>
+                                                    )}
+                                                    {hasPermission('submissions:edit') && <button onClick={() => openModal(s, false)} className="text-primary hover:text-primary-dark">Sửa</button>}
+                                                    
+                                                    {hasPermission('submissions:approve') && s.status === Status.PENDING && (
+                                                        <>
+                                                            <button onClick={() => handleStatusChange(s, Status.APPROVED)} className="text-green-600 hover:text-green-800">Duyệt</button>
+                                                            <button onClick={() => handleStatusChange(s, Status.REJECTED)} className="text-yellow-600 hover:text-yellow-800">Từ chối</button>
+                                                        </>
+                                                    )}
+                                                    
+                                                    {hasPermission('submissions:approve') && s.status === Status.PAYMENT_PENDING && (
+                                                        <>
+                                                            <button onClick={() => handleStatusChange(s, Status.PAYMENT_CONFIRMED)} className="text-blue-600 hover:text-blue-800">Xác nhận TT</button>
+                                                            <button onClick={() => handleStatusChange(s, Status.REJECTED)} className="text-yellow-600 hover:text-yellow-800">Từ chối</button>
+                                                        </>
+                                                    )}
+                                                    
+                                                    {hasPermission('submissions:delete') && <button onClick={() => handleDelete(s)} className="text-red-600 hover:text-red-800">Xóa</button>}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </>
+                             )}
+                              {submissionsConfirmed.length > 0 && (
+                                <>
+                                    <tr className="is-group-header">
+                                        <td colSpan={6} className="px-6 py-2 text-left text-sm font-semibold text-gray-700 bg-gray-100">
+                                            Đã Thanh Toán ({submissionsConfirmed.length})
+                                        </td>
+                                    </tr>
+                                    {submissionsConfirmed.map(s => (
+                                         <tr key={s.id} className="bg-white lg:bg-transparent shadow-sm lg:shadow-none">
+                                            <td data-label="Đại biểu" className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex justify-between items-start w-full">
+                                                    <div>
+                                                        <div className="text-sm font-semibold text-gray-900 responsive-name">{s.full_name}</div>
+                                                        <div className="text-sm text-gray-500 font-mono mt-1 responsive-id">{s.attendance_id}</div>
+                                                    </div>
+                                                    <div className="lg:hidden flex-shrink-0">
+                                                        {renderStatusBadge(s.status)}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td data-label="Loại" className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{s.attendee_type}</td>
+                                            <td data-label="Số tiền" className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-800">{formatCurrency(s.payment_amount)}</td>
+                                            <td data-label="Tài liệu" className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <div className="flex flex-col space-y-1 items-end lg:items-start">
+                                                    {s.payment_image_url ? (
+                                                        <button onClick={() => setViewingImage(s.payment_image_url)} className="text-primary hover:underline">Ảnh CK</button>
+                                                    ) : ( <span className="text-gray-400">Ảnh CK</span> )}
+                                                    {s.badge_url ? (
+                                                        <a href={s.badge_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">File In</a>
+                                                    ) : ( <span className="text-gray-400">File In</span> )}
+                                                </div>
+                                            </td>
+                                            <td data-label="Trạng thái" className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                                                {renderStatusBadge(s.status)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium actions-cell">
+                                               <div className="flex flex-wrap gap-x-3 gap-y-2 lg:justify-end">
+                                                    <button onClick={() => openModal(s, true)} className="text-gray-600 hover:text-gray-900">Xem</button>
+                                                    <button 
+                                                        onClick={() => window.open(s.badge_url!, '_blank')} 
+                                                        disabled={!s.badge_url}
+                                                        className="text-indigo-600 hover:text-indigo-900 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                    >
+                                                        In thẻ
+                                                    </button>
+                                                    {s.badge_url && hasPermission('submissions:edit') && (
+                                                        <button
+                                                            onClick={() => handleRegenerateBadge(s)}
+                                                            className="text-orange-600 hover:text-orange-900"
+                                                            title="Tạo lại file PDF in thẻ"
+                                                        >
+                                                            Tạo lại
+                                                        </button>
+                                                    )}
+                                                    {hasPermission('submissions:edit') && <button onClick={() => openModal(s, false)} className="text-primary hover:text-primary-dark">Sửa</button>}
+                                                    {hasPermission('submissions:delete') && <button onClick={() => handleDelete(s)} className="text-red-600 hover:text-red-800">Xóa</button>}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </>
+                             )}
+                             {submissionsRejected.length > 0 && (
+                                <>
+                                    <tr className="is-group-header">
+                                        <td colSpan={6} className="px-6 py-2 text-left text-sm font-semibold text-gray-700 bg-gray-100">
+                                            Đã Từ Chối ({submissionsRejected.length})
+                                        </td>
+                                    </tr>
+                                    {submissionsRejected.map(s => (
+                                         <tr key={s.id} className="bg-white lg:bg-transparent shadow-sm lg:shadow-none">
+                                            <td data-label="Đại biểu" className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex justify-between items-start w-full">
+                                                    <div>
+                                                        <div className="text-sm font-semibold text-gray-900 responsive-name">{s.full_name}</div>
+                                                        <div className="text-sm text-gray-500 font-mono mt-1 responsive-id">{s.attendance_id}</div>
+                                                    </div>
+                                                    <div className="lg:hidden flex-shrink-0">
+                                                        {renderStatusBadge(s.status)}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td data-label="Loại" className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{s.attendee_type}</td>
+                                            <td data-label="Số tiền" className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-800">{formatCurrency(s.payment_amount)}</td>
+                                            <td data-label="Tài liệu" className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <div className="flex flex-col space-y-1 items-end lg:items-start">
+                                                    {s.payment_image_url ? (
+                                                        <button onClick={() => setViewingImage(s.payment_image_url)} className="text-primary hover:underline">Ảnh CK</button>
+                                                    ) : ( <span className="text-gray-400">Ảnh CK</span> )}
+                                                    {s.badge_url ? (
+                                                        <a href={s.badge_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">File In</a>
+                                                    ) : ( <span className="text-gray-400">File In</span> )}
+                                                </div>
+                                            </td>
+                                            <td data-label="Trạng thái" className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                                                {renderStatusBadge(s.status)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium actions-cell">
+                                               <div className="flex flex-wrap gap-x-3 gap-y-2 lg:justify-end">
+                                                    <button onClick={() => openModal(s, true)} className="text-gray-600 hover:text-gray-900">Xem</button>
+                                                    {hasPermission('submissions:edit') && <button onClick={() => openModal(s, false)} className="text-primary hover:text-primary-dark">Sửa</button>}
+                                                    {hasPermission('submissions:delete') && <button onClick={() => handleDelete(s)} className="text-red-600 hover:text-red-800">Xóa</button>}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </>
+                             )}
                         </tbody>
                     </table>
                 )}

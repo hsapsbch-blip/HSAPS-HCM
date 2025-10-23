@@ -6,11 +6,56 @@ import { GridIcon } from '../components/icons/GridIcon';
 import { ListIcon } from '../components/icons/ListIcon';
 import { useToast } from '../contexts/ToastContext';
 
+const toTitleCase = (str: string): string => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 declare global {
   interface Window {
     ClassicEditor: any;
   }
 }
+
+// A function that returns a plugin for CKEditor
+function SupabaseUploadAdapterPlugin(editor: any) {
+    editor.plugins.get('FileRepository').createUploadAdapter = (loader: any) => {
+        return new SupabaseUploadAdapter(loader);
+    };
+}
+
+// A custom upload adapter class
+class SupabaseUploadAdapter {
+    private loader: any;
+    constructor(loader: any) {
+        this.loader = loader;
+    }
+    upload() {
+        return this.loader.file
+            .then((file: File) => new Promise((resolve, reject) => {
+                uploadFileToStorage(file, 'event_assets', 'speaker_notes_images')
+                    .then(publicUrl => {
+                        if (publicUrl) {
+                            resolve({ default: publicUrl });
+                        } else {
+                            reject('Tải ảnh lên thất bại.');
+                        }
+                    })
+                    .catch((error: any) => {
+                        console.error("Supabase upload adapter error:", error);
+                        reject(error.message || 'Lỗi không xác định khi tải ảnh.');
+                    });
+            }));
+    }
+    abort() {
+        // Abort logic can be implemented if your storage client supports it.
+    }
+}
+
 
 type UploadingState = {
   avatar_url: boolean;
@@ -119,14 +164,15 @@ const Speakers: React.FC = () => {
         if (element && !takeCareEditorRef.current) {
             window.ClassicEditor
                 .create(element, {
+                    extraPlugins: [SupabaseUploadAdapterPlugin],
                     toolbar: {
                         items: [
                             'undo', 'redo', '|', 'heading', '|', 
-                            'bold', 'italic', '|', 'link', 'bulletedList', 'numberedList', 'blockQuote'
+                            'bold', 'italic', '|', 'link', 'bulletedList', 'numberedList', 'blockQuote',
+                            '|', 'imageInsert'
                         ],
                         shouldNotGroupWhenFull: true
                     },
-                    removePlugins: ['ImageUpload', 'EasyImage', 'CKFinder']
                 })
                 .then((editor: any) => {
                     takeCareEditorRef.current = editor;
@@ -276,7 +322,11 @@ const Speakers: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setEditingSpeaker(prev => ({ ...prev, [name]: value }));
+    if (name === 'full_name') {
+        setEditingSpeaker(prev => ({ ...prev, [name]: toTitleCase(value) }));
+    } else {
+        setEditingSpeaker(prev => ({ ...prev, [name]: value }));
+    }
   };
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof UploadingState) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase, uploadFileToStorage } from '../supabaseClient';
 import { useAuth } from '../App';
 import { useToast } from '../contexts/ToastContext';
 import { Status, Speaker, Submission, Sponsor } from '../types';
@@ -10,6 +10,42 @@ declare global {
     ClassicEditor: any;
   }
 }
+
+// A function that returns a plugin for CKEditor
+function SupabaseUploadAdapterPlugin(editor: any) {
+    editor.plugins.get('FileRepository').createUploadAdapter = (loader: any) => {
+        return new SupabaseUploadAdapter(loader);
+    };
+}
+
+// A custom upload adapter class
+class SupabaseUploadAdapter {
+    private loader: any;
+    constructor(loader: any) {
+        this.loader = loader;
+    }
+    upload() {
+        return this.loader.file
+            .then((file: File) => new Promise((resolve, reject) => {
+                uploadFileToStorage(file, 'event_assets', 'email_images')
+                    .then(publicUrl => {
+                        if (publicUrl) {
+                            resolve({ default: publicUrl });
+                        } else {
+                            reject('Tải ảnh lên thất bại.');
+                        }
+                    })
+                    .catch((error: any) => {
+                        console.error("Supabase upload adapter error:", error);
+                        reject(error.message || 'Lỗi không xác định khi tải ảnh.');
+                    });
+            }));
+    }
+    abort() {
+        // Abort logic can be implemented if your storage client supports it.
+    }
+}
+
 
 const AccessDenied: React.FC = () => (
     <div>
@@ -45,14 +81,15 @@ const BulkEmail: React.FC = () => {
             if (element && !editorInstance.current) {
                 window.ClassicEditor
                     .create(element, { 
+                        extraPlugins: [SupabaseUploadAdapterPlugin],
                          toolbar: {
                             items: [
                                 'undo', 'redo', '|', 'heading', '|', 
-                                'bold', 'italic', '|', 'link', 'bulletedList', 'numberedList', 'blockQuote'
+                                'bold', 'italic', '|', 'link', 'bulletedList', 'numberedList', 'blockQuote',
+                                '|', 'imageInsert'
                             ],
                             shouldNotGroupWhenFull: true
                         },
-                        removePlugins: ['ImageUpload', 'EasyImage', 'CKFinder']
                      })
                     .then((editor: any) => {
                         editorInstance.current = editor;

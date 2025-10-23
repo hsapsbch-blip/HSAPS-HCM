@@ -6,6 +6,15 @@ import { useToast } from '../contexts/ToastContext';
 import { BrandIcon } from '../components/icons/BrandIcon';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 
+const toTitleCase = (str: string): string => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 type UploadingState = Partial<Record<keyof Speaker, boolean>>;
 type FileNamesState = Partial<Record<keyof Speaker, string>>;
 
@@ -56,7 +65,11 @@ const SpeakerRegistration: React.FC = () => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({...prev, [name]: value}));
+        if (name === 'full_name') {
+            setFormData(prev => ({...prev, [name]: toTitleCase(value)}));
+        } else {
+            setFormData(prev => ({...prev, [name]: value}));
+        }
     };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof Speaker) => {
